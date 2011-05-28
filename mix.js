@@ -1,3 +1,13 @@
+/*
+ * mix.js
+ * varsion: 0.1.0 (2011/05/28)
+ *
+ * Licensed under the MIT:
+ *   http://www.opensource.org/licenses/mit-license.php
+ *
+ * Copyright 2011, Ryuichi TANAKA [mapserver2007@gmail.com]
+ */
+
 var Module = {};
 Module.create = function(base) {
   var isIE = function() { return !!document.attachEvent; };
