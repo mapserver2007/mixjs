@@ -32,6 +32,7 @@ var Ipad = Module.create({
     }
 });
 
+module("mix.js");
 
 test("Module.create()でmixメソッドが追加されること", function() {
     var obj = Module.create({})
