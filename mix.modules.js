@@ -76,9 +76,6 @@ var Cache = Module.create({
       break;
       }
     }
-  
-    console.log(this.stack);
-  
     return content;
   }
 });
