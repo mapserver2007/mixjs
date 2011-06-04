@@ -7,6 +7,7 @@
  *
  * Copyright 2011, Ryuichi TANAKA [mapserver2007@gmail.com]
  */
+ 
 var Cache = Module.create({
   getCurrentDate: function() {
     return ~~(new Date() / 1000);
@@ -107,20 +108,19 @@ var Http = Module.create({
         alert(response);
       };
 
-    start();
-  
-    $.ajax({
-      type: opts.type,
-      dataType: opts.dataType,
-      data: params,
-      cache: true,
-      url: url,
-      success: function(data, dataType) {
-        success(successCallback, data, opts.args);
-      },
-      error: function(XMLHttpRequest, textStatus, errorThrown) {
-        error(errorCallback, textStatus, opts.args);
-      }
-    });
-  }
+  start();
+
+  $.ajax({
+    type: opts.type,
+    dataType: opts.dataType,
+    data: params,
+    cache: true,
+    url: url,
+    success: function(data, dataType) {
+      success(successCallback, data, opts.args);
+    },
+    error: function(XMLHttpRequest, textStatus, errorThrown) {
+      error(errorCallback, textStatus, opts.args);
+    }
+  });
 });
