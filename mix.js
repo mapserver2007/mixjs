@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.1.1 (2011/06/05)
+ * version: 0.1.2 (2011/06/05)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -13,7 +13,7 @@ Module.create = function(base) {
     var isIE = function() { return !!document.attachEvent; };
     var clone = function(o) {
         var c = {};
-        for (var prop in o) {
+        for (var prop in o) if (o.hasOwnProperty(prop)) {
             c[prop] = o[prop];
         }
         if (!isIE()) {
