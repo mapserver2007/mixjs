@@ -166,32 +166,25 @@ var Http = Module.create({
                   optEndFunc,
                   optArgs) {
 
-        var caller = function(f, args) {
+        var funcCaller = function(f, args) {
             if (typeof f === "function") {
                 f.call(null, args);
             }
         };
+        var callbackCaller = function(callback, response, optArgs) {
+            end();
+            if (typeof callback === "function") {
+                callback.call(this, response, optArgs);
+            }
+            else {
+                throw response;
+            }
+        };
         
-        var start   = function() { caller(startFunc, optArgs); },
-            end     = function() { caller(endFunc, optArgs); },
-            success = function(callback, response, optArgs) {
-                end();
-                if (typeof callback === "function") {
-                    callback.call(this, response, optArgs);
-                }
-                else {
-                    throw response;
-                }
-            },
-            error   = function(callback, response, optArgs) {
-                end();
-                if (typeof callback === "function") {
-                    callback.call(this, response, optArgs);
-                }
-                else {
-                    throw response;
-                }
-            };
+        var start   = function() { funcCaller(startFunc, optArgs); },
+            end     = function() { funcCaller(endFunc, optArgs); },
+            success = function() { callbackCaller(arguments); },
+            error   = function() { callbackCaller(arguments); };
 
         start();
         
