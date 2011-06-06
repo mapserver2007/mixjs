@@ -1,25 +1,81 @@
 /*
  * mix.modules.js
- * version: 0.1.1 (2011/06/05)
+ * version: 0.1.2 (2011/06/06)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
  *
  * Copyright 2011, Ryuichi TANAKA [mapserver2007@gmail.com]
  */
- 
+
+/**
+ * Utilsモジュール
+ */
+var Utils = Module.create({
+    /**
+     * ホスティングjQueryを開く
+     */
+    latestJQueryVersion: "1.6.1",
+    loadJQuery: function(optVersion) {
+        var url = "https://ajax.googleapis.com/ajax/libs/jquery/"
+                + (this.latestJQueryVersion || optVersion)
+                + "/jquery.min.js";
+        var script = document.createElement("script"),
+            body = document.body;
+        script.setAttribute("src", url);
+        script.setAttribute("charset", "UTF-8");
+        body.appendChild(script);
+    },
+    
+    /**
+     * Getterメソッドを動的に定義する
+     */
+    generateGetter: function(constants, optModule) {
+        var createMethodName = function(str) {
+            var snakeParts = str.split("_");
+            var camelParts = [];
+            for (var i = 0, len = snakeParts.length; i < len; i++) {
+                camelParts[i] = snakeParts[i].replace(/\w+/g, function(word) {
+                    return word.charAt(0).toUpperCase() + word.substr(1).toLowerCase();
+                });
+            }
+            return "get" + camelParts.join("");
+        };
+        for (var name in constants) {
+            var methodName = createMethodName(name);
+            this[methodName] = (function(key) {
+                return function() {
+                    return constants[key];
+                };
+            })(name);
+        }
+    }
+});
+
+/**
+ * Cacheモジュール
+ */
 var Cache = Module.create({
+    /**
+     * 現在の日付(UnixTime)を返却する
+     */
     getCurrentDate: function() {
         return ~~(new Date() / 1000);
     },
-
+    
+    /**
+     * UnixTimeをDateに変換する
+     */
     unixTimeToDate: function(ut, optTimeZone) {
         var tz = optTimeZone || 0;
         var date = new Date(ut * 1000);
         date.setTime(date.getTime() + 60 * 60 * 1000 * tz);
         return date;
     },
-
+    
+    /**
+     * Cacheキーを生成して返却する
+     */
     createKey: function(key, optExpire) {
         if (typeof optExpire === "undefined") {
             return key;
@@ -50,12 +106,18 @@ var Cache = Module.create({
 
         return key + "-" + expireTime;
     },
-
+    
+    /**
+     * Cacheを設定する
+     */
     setCache: function(key, content, expire) {
         if (typeof this.stack === "undefined") { this.stack = {}; }
         this.stack[this.createKey(key, expire)] = content;
     },
-
+    
+    /**
+     * Cacheを返却する
+     */
     getCache: function(keyName) {
         // keyのsuffixとしてUNIX TIMEが付与されている場合は分離する。
         var key, content, expireTime;
@@ -93,53 +155,87 @@ var Cache = Module.create({
  * HTTP関連モジュール
  */
 var Http = Module.create({
+    /**
+     * 非同期通信のラッパーメソッド
+     */
     xhr: function(url,
                   params,
-                  opts,
                   successCallback,
-                  errorCallback,
-                  startFunc,
-                  endFunc) {
+                  optErrorCallback,
+                  optStartFunc,
+                  optEndFunc,
+                  optArgs) {
 
-        var caller = function(f) {
+        var caller = function(f, args) {
             if (typeof f === "function") {
-                f.call(this);
+                f.call(null, args);
             }
         };
-
-        var start   = function() { caller(startFunc); },
-            end     = function() { caller(endFunc); },
-            success = function(callback, response, args) {
+        
+        var start   = function() { caller(startFunc, optArgs); },
+            end     = function() { caller(endFunc, optArgs); },
+            success = function(callback, response, optArgs) {
                 end();
                 if (typeof callback === "function") {
-                    callback.call(this, response, args);
+                    callback.call(this, response, optArgs);
                 }
                 else {
                     throw response;
                 }
             },
-            error   = function(callback, response, args) {
+            error   = function(callback, response, optArgs) {
                 end();
                 if (typeof callback === "function") {
-                    callback.call(this, response, args);
+                    callback.call(this, response, optArgs);
                 }
-                alert(response);
+                else {
+                    throw response;
+                }
             };
 
         start();
-
-        $.ajax({
-            type: opts.type,
-            dataType: opts.dataType,
-            data: params,
-            cache: true,
-            url: url,
-            success: function(data, dataType) {
-                success(successCallback, data, opts.args);
-            },
-            error: function(XMLHttpRequest, textStatus, errorThrown) {
-                error(errorCallback, textStatus, opts.args);
+        
+        // jQueryが読み込まれていないときはホスティング先から読み込む
+        if (typeof jQuery === "undefined") {
+            if (typeof this.loadJQuery === "undefined" && typeof Utils !== "undefined") {
+                if (typeof Utils !== "undefined") {
+                    Utils.loadJQuery();                    
+                }
+                else {
+                    throw "require jQuery.";
+                }
             }
-        });
+            else {
+                this.loadJQuery();
+            }
+        }
+
+        // 動的にjQueryを読み込んだときは遅延ロードする
+        (function() {
+            var f = arguments.callee;
+            try {
+                $.ajax({
+                    type: optArgs.type || "post",
+                    dataType: optArgs.dataType || "json",
+                    data: params || {},
+                    cache: optArgs.cache || true,
+                    url: url,
+                    success: function(data, dataType) {
+                        success(successCallback, data, optArgs.args);
+                    },
+                    error: function(XMLHttpRequest, textStatus, errorThrown) {
+                        error(errorCallback, textStatus, optArgs.args);
+                    }
+                });
+            }
+            catch(e) {
+                if (e.message === "$ is not defined") {
+                    setTimeout(function() { f(); }, 100);
+                }
+                else {
+                    throw e;
+                }
+            }
+        })();
     }
 });
