@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.2 (2011/06/06)
+ * version: 0.1.3 (2011/06/07)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -21,7 +21,7 @@ var Utils = Module.create({
                 + (this.latestJQueryVersion || optVersion)
                 + "/jquery.min.js";
         var script = document.createElement("script"),
-            body = document.body;
+            body = document.getElementsByTagName("html")[0];
         script.setAttribute("src", url);
         script.setAttribute("charset", "UTF-8");
         body.appendChild(script);
@@ -190,7 +190,7 @@ var Http = Module.create({
         
         // jQueryが読み込まれていないときはホスティング先から読み込む
         if (typeof jQuery === "undefined") {
-            if (typeof this.loadJQuery === "undefined" && typeof Utils !== "undefined") {
+            if (typeof this.loadJQuery === "undefined") {
                 if (typeof Utils !== "undefined") {
                     Utils.loadJQuery();                    
                 }

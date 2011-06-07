@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.1.2 (2011/06/05)
+ * version: 0.1.3 (2011/06/07)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
