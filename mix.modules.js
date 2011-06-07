@@ -30,7 +30,7 @@ var Utils = Module.create({
     /**
      * Getterメソッドを動的に定義する
      */
-    generateGetter: function(constants, optModule) {
+    generateGetter: function(constants) {
         var createMethodName = function(str) {
             var snakeParts = str.split("_");
             var camelParts = [];
@@ -156,15 +156,22 @@ var Cache = Module.create({
  */
 var Http = Module.create({
     /**
-     * 非同期通信のラッパーメソッド
+     * 非同期通信を実行する
+     * @param url 送信先URL
+     * @param params 送信パラメータ
+     * @param optArgs 通信パラメータ
+     * @param successCallback 成功時コールバック関数
+     * @param optErrorCallback 失敗時コールバック関数
+     * @param optStartFunc 処理開始前に実行する関数
+     * @param optEndFunc 処理完了後に実行する関数
      */
     xhr: function(url,
                   params,
+                  optArgs,
                   successCallback,
                   optErrorCallback,
                   optStartFunc,
-                  optEndFunc,
-                  optArgs) {
+                  optEndFunc) {
 
         var funcCaller = function(f, args) {
             if (typeof f === "function") {
@@ -181,10 +188,10 @@ var Http = Module.create({
             }
         };
         
-        var start   = function() { funcCaller(startFunc, optArgs); },
-            end     = function() { funcCaller(endFunc, optArgs); },
-            success = function() { callbackCaller(arguments); },
-            error   = function() { callbackCaller(arguments); };
+        var start   = function() { funcCaller(optStartFunc, optArgs); },
+            end     = function() { funcCaller(optEndFunc, optArgs); },
+            success = function(callback, response, args) { callbackCaller(callback, response, args); },
+            error   = function(callback, response, args) { callbackCaller(callback, response, args); };
 
         start();
         
@@ -217,7 +224,7 @@ var Http = Module.create({
                         success(successCallback, data, optArgs.args);
                     },
                     error: function(XMLHttpRequest, textStatus, errorThrown) {
-                        error(errorCallback, textStatus, optArgs.args);
+                        error(optErrorCallback, textStatus, optArgs.args);
                     }
                 });
             }
