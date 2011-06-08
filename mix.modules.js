@@ -49,6 +49,33 @@ var Utils = Module.create({
                 };
             })(name);
         }
+    },
+    
+    /**
+     * 昇順ソートする
+     * 要素がHashの場合は指定キーで昇順ソートする
+     * example:
+     * [{name: 'a'}, {name: 'c'}, {name: 'b'}] # 要素がハッシュの場合
+     * -> [{name: 'a'}, {name: 'b'}, {name: 'c'}]
+     */
+    ascSort: function(ary, key) {
+        // 要素がHashの場合
+        if (ary.length > 0 && typeof ary[0] === "object" && typeof key !== "undefined") {
+            ary.sort(function(a, b) { return a[key] > b[key] ? 1 : -1; });
+        }
+        // 要素が数値または文字列の場合
+        else if (ary.length > 0 && (typeof ary[0] === "number" || typeof ary[0] === "string")) {
+            ary.sort();
+        }
+        return ary;
+    },
+    
+    /**
+     * 降順ソートする
+     * 要素がHashの場合は指定キーで降順ソートする
+     */
+    descSort: function(data, key) {
+        return this.ascSort(data, key).reverse();
     }
 });
 
