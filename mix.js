@@ -97,8 +97,7 @@ Module.create = function(base) {
             
             for (var node = child;;) {
                 if (node.__proto__ !== null) {
-                    node.parent = (function(self) { return self.__proto__; })(node);
-                    node = node.__proto__;
+                    node = node.parent = node.__proto__;
                 }
                 else {
                     break;
