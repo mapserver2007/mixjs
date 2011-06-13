@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.1.3 (2011/06/07)
+ * version: 0.1.4 (2011/06/11)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -30,7 +30,7 @@ Module.create = function(base) {
                 for (var parent = clone(arguments[i]);;) {
                     parents.push(parent);
                     if (parent.hasOwnProperty("parent")) {
-                        parent = parent.parent();
+                        parent = parent.parent;
                     }
                     else {
                         break;
@@ -42,7 +42,7 @@ Module.create = function(base) {
             for (var c = clone(this);;) {
                 children.push(c);
                 if (c.hasOwnProperty("parent")) {
-                    c = c.parent();
+                    c = c.parent;
                 }
                 else {
                     break;
@@ -58,9 +58,7 @@ Module.create = function(base) {
                     p = ancestors[parentNo];
 
                 ancestors[childNo].parent = (function(p) {
-                    return function() {
-                        return p;
-                    };
+                    return p;
                 })(ancestors[parentNo]);
 
                 for (var prop in p) if (!c.hasOwnProperty(prop)) {
@@ -72,7 +70,6 @@ Module.create = function(base) {
         };
     }
     else {
-        base.parent = function() { return this.__proto__; };
         base.mix = function() {
             var parents = arguments,
                 child = clone(this);
@@ -90,11 +87,22 @@ Module.create = function(base) {
                         break;
                     }
                 }
+                
                 var propList = ["child"];
                 for (var d = 1; d <= depth; d++) {
                     propList[d] = "__proto__";
                 };
                 eval(propList.join(".") + " = parent");
+            }
+            
+            for (var node = child;;) {
+                if (node.__proto__ !== null) {
+                    node.parent = (function(self) { return self.__proto__; })(node);
+                    node = node.__proto__;
+                }
+                else {
+                    break;
+                }
             }
             return child;
         };
