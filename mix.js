@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.1.4 (2011/06/11)
+ * version: 0.1.5 (2011/06/14)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -22,6 +22,39 @@ Module.create = function(base) {
         return c;
     };
 
+    base.has = function(parent) {
+        var child = clone(this);
+        for (var pprop in parent) {
+            var isMixed = (function() {
+                for (var cprop in child) {
+                    for (var c = clone(child);;) {
+                        if (c[cprop] !== parent[pprop]) {
+                            // 親がいる場合
+                            if (c.hasOwnProperty("parent")) {
+                                c = c.parent;
+                            }
+                            // 親がいない場合
+                            else {
+                                break;
+                            }
+                        }
+                        // メソッドを持っている場合
+                        else {
+                            return true;
+                        }
+                    }
+                }
+                // メソッドが見つからなかった場合ここに到達する
+                return false;
+            })();
+            
+            if (!isMixed) {
+                return false;
+            }
+        }
+        return true;
+    };
+    
     if (isIE()) {
         base.mix = function() {
             // 親が継承済みの場合を考慮するため親の階層を辿る
@@ -57,9 +90,7 @@ Module.create = function(base) {
                 var c = ancestors[childNo],
                     p = ancestors[parentNo];
 
-                ancestors[childNo].parent = (function(p) {
-                    return p;
-                })(ancestors[parentNo]);
+                ancestors[childNo].parent = ancestors[parentNo];
 
                 for (var prop in p) if (!c.hasOwnProperty(prop)) {
                     c[prop] = p[prop];

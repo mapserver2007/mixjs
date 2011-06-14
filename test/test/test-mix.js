@@ -149,3 +149,43 @@ test("多重継承したオブジェクトの親からその祖先のメソッ�
     var obj = Iphone.mix(Feature, Android, Telephone);
     same(obj.parent.getType(), "old type", "親がその親のメソッドを参照できること");
 });
+
+test("Mix-in済みオブジェクトにMix-inしたモジュールが含まれていること", function() {
+    var obj = Iphone.mix(Telephone).mix(Android);
+    same(obj.has(Iphone), true, "子オブジェクトにMix-inモジュールが含まれること");
+});
+
+test("Mix-in済みオブジェクトの親にMix-inしたモジュールが含まれていること", function() {
+    var obj = Iphone.mix(Telephone).mix(Android);
+    same(obj.has(Telephone), true, "親オブジェクトにMix-inモジュールが含まれること");
+});
+
+test("Mix-in済みオブジェクトの親の親にMix-inしたモジュールが含まれていること", function() {
+    var obj = Iphone.mix(Telephone).mix(Android);
+    same(obj.has(Android), true, "親の親オブジェクトにMix-inモジュールが含まれること");
+});
+
+test("多重継承済みオブジェクトにMix-inしたモジュールが含まれていること", function() {
+    var obj = Iphone.mix(Telephone, Android);
+    same(obj.has(Iphone), true, "子オブジェクトにMix-inモジュールが含まれること");
+});
+
+test("多重継承済みオブジェクトの親にMix-inしたモジュールが含まれていること", function() {
+    var obj = Iphone.mix(Telephone, Android);
+    same(obj.has(Telephone), true, "親オブジェクトにMix-inモジュールが含まれること");
+});
+
+test("多重継承済みオブジェクトの親の親にMix-inしたモジュールが含まれていること", function() {
+    var obj = Iphone.mix(Telephone, Android);
+    same(obj.has(Android), true, "親の親オブジェクトにMix-inモジュールが含まれること");
+});
+
+test("Mix-in済みオブジェクトにMix-inしていないモジュールは含まれないこと", function() {
+    var obj = Iphone.mix(Telephone);
+    same(obj.has(Android), false, "Mix-inしていないモジュールは含まれないこと");
+});
+
+test("多重継承済みオブジェクトにMix-inしていないモジュールは含まれないこと", function() {
+    var obj = Iphone.mix(Telephone, Android);
+    same(obj.has(Ipad), false, "Mix-inしていないモジュールは含まれないこと");
+});
