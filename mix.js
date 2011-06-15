@@ -25,13 +25,6 @@ Module.create = function(base) {
     base.has = function(parent) {
         var isMixed = true,
             child = clone(this);
-        var propCount = function(o) {
-            var cnt = 0;
-            for (var prop in o) {
-                cnt++;
-            }
-            return cnt;
-        };
         
         for (var pprop in parent) {
             isMixed *= (function() {
