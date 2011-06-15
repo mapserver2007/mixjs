@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.1.5 (2011/06/14)
+ * version: 0.1.6 (2011/06/15)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -23,9 +23,18 @@ Module.create = function(base) {
     };
 
     base.has = function(parent) {
-        var child = clone(this);
+        var isMixed = true,
+            child = clone(this);
+        var propCount = function(o) {
+            var cnt = 0;
+            for (var prop in o) {
+                cnt++;
+            }
+            return cnt;
+        };
+        
         for (var pprop in parent) {
-            var isMixed = (function() {
+            isMixed *= (function() {
                 for (var cprop in child) {
                     for (var c = clone(child);;) {
                         if (c[cprop] !== parent[pprop]) {
@@ -47,8 +56,8 @@ Module.create = function(base) {
                 // メソッドが見つからなかった場合ここに到達する
                 return false;
             })();
-            
-            if (!isMixed) {
+
+            if (!!(!isMixed)) {
                 return false;
             }
         }
@@ -81,19 +90,38 @@ Module.create = function(base) {
                     break;
                 }
             }
+            
+            var ancestors = children.concat(parents),
+                len = ancestors.length;
+            var isSameModule = function(m1, m2) {
+                // オブジェクトには親(parent)が残っているとhasメソッドで親を参照し続け
+                // 異なるオブジェクトでも同じと判定することがある。単なるオブジェクト同士を比較
+                // する場合はparentで参照しないようにする必要がある。
+                delete m1.parent;
+                delete m2.parent;
+                return m1.has(m2);
+            }
+            
+            for (var i = 0; i < len; i++) {
+                var module1 = ancestors[i];
+                for (var j = 0; j < len; j++) {
+                    var module2 = ancestors[j];
+                    if (i !== j && isSameModule(module1, module2)) {
+                        throw "mix-in the same module.";
+                    }
+                }
+            }
+            
             // 自分の祖先が持っているメソッドを子供に受け継がせる
-            var ancestors = children.concat(parents);
             for (var k = ancestors.length - 1; k > 0; k--) {
                 var parentNo = k,
                     childNo = parentNo - 1;
-
-                var c = ancestors[childNo],
-                    p = ancestors[parentNo];
-
-                ancestors[childNo].parent = ancestors[parentNo];
-
-                for (var prop in p) if (!c.hasOwnProperty(prop)) {
-                    c[prop] = p[prop];
+                var child = ancestors[childNo],
+                    parent = ancestors[parentNo];
+                
+                child.parent = parent;
+                for (var prop in parent) if (!child.hasOwnProperty(prop)) {
+                    child[prop] = parent[prop];
                 }
             }
 
@@ -108,7 +136,11 @@ Module.create = function(base) {
             for (var i = 0, len = parents.length; i < len; i++) {
                 var parent = clone(parents[i]),
                     depth = 0;
-
+                
+                if (child.has(parent)) {
+                    throw "mix-in the same module.";
+                }
+                
                 for (var _c = child;;) {
                     _c = _c.__proto__;
                     if (_c !== null) {
@@ -126,9 +158,9 @@ Module.create = function(base) {
                 eval(propList.join(".") + " = parent");
             }
             
-            for (var node = child;;) {
-                if (node.__proto__ !== null) {
-                    node = node.parent = node.__proto__;
+            for (var _c = child;;) {
+                if (_c.__proto__ !== null) {
+                    _c = _c.parent = _c.__proto__;
                 }
                 else {
                     break;

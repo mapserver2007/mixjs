@@ -189,3 +189,9 @@ test("多重継承済みオブジェクトにMix-inしていないモジュー�
     var obj = Iphone.mix(Telephone, Android);
     same(obj.has(Ipad), false, "Mix-inしていないモジュールは含まれないこと");
 });
+
+test("同じモジュールをMix-inした場合は例外が発生すること", function() {
+    raises(function() {
+        var obj = Iphone.mix(Feature).mix(Iphone);
+    }, "mix-in the same module.","同じモジュールをMix-inした場合は例外が発生する");
+});
