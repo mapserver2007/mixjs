@@ -191,7 +191,51 @@ test("多重継承済みオブジェクトにMix-inしていないモジュー�
 });
 
 test("同じモジュールをMix-inした場合は例外が発生すること", function() {
-    raises(function() {
+    var message;
+    try {
         var obj = Iphone.mix(Feature).mix(Iphone);
-    }, "mix-in the same module.","同じモジュールをMix-inした場合は例外が発生する");
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "mix-in the same module.", "同じモジュールをMix-inした場合は例外が発生する");
+});
+
+test("モジュールにmixメソッドを定義した場合は例外が発生すること", function() {
+    var message;
+    try {
+        var ChinaPad = Module.create({
+            mix: function() {}
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "mix method can't be defined.", "mixメソッドは定義不可");
+});
+
+test("モジュールにparentメソッドを定義した場合は例外が発生すること", function() {
+    var message;
+    try {
+        var ChinaPad = Module.create({
+            parent: function() {}
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "parent method can't be defined.", "parentメソッドは定義不可");
+});
+
+test("モジュールにhasメソッドを定義した場合は例外が発生すること", function() {
+    var message;
+    try {
+        var ChinaPad = Module.create({
+            has: function() {}
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "has method can't be defined.", "hasメソッドは定義不可");
 });

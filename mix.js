@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.1.6 (2011/06/15)
+ * version: 0.1.7 (2011/06/16)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -21,7 +21,24 @@ Module.create = function(base) {
         }
         return c;
     };
+    
+    // 禁止メソッドを定義した場合は例外を起こす
+    var prohibit = (function(obj) {
+        var prohibits = ["mix", "parent", "has"];
+        for (var prop in obj) {
+            for (var i = 0, len = prohibits.length; i < len; i++)  {
+                var prohibitProp = prohibits[i];
+                if (prohibitProp === prop) {
+                    return prop;
+                }
+            }
+        }
+    })(base);
 
+    if (prohibit) { 
+        throw new Error(prohibit + " method can't be defined.");
+    };
+    
     base.has = function(parent) {
         var isMixed = true,
             child = clone(this);
@@ -100,7 +117,7 @@ Module.create = function(base) {
                 for (var j = 0; j < len; j++) {
                     var module2 = ancestors[j];
                     if (i !== j && isSameModule(module1, module2)) {
-                        throw "mix-in the same module.";
+                        throw new Error("mix-in the same module.");
                     }
                 }
             }
@@ -131,7 +148,7 @@ Module.create = function(base) {
                     depth = 0;
                 
                 if (child.has(parent)) {
-                    throw "mix-in the same module.";
+                    throw new Error("mix-in the same module.");
                 }
                 
                 for (var _c = child;;) {
