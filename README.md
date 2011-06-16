@@ -30,8 +30,8 @@ mix.js modules easily can use the mix-in.
 ***
 
 ###refer to parent
-Mix-in object have parent-child relationship between modules.
-(don't be overwrite the properties.)
+Mix-in object have parent-child relationship between modules.  
+(don't be overwrite the properties.)  
 Therefore mix-in object can refer to parent method using "parent" property.
 
     console.log(obj.getName()); // iphone
