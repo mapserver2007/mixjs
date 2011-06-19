@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.3 (2011/06/07)
+ * version: 0.1.4 (2011/06/19)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -79,6 +79,117 @@ var Utils = Module.create({
     }
 });
 
+var Design = Module.create({
+    /**
+     * 指定した領域にローディングフィルタをかける
+     */
+    loading: function(config, callback) {
+        // jQueryオブジェクトをDOMオブジェクトに変換
+        if (config.target instanceof jQuery) {
+            config.target = config.target.get(0);
+        }
+        
+        var cacheImg = document.createElement("img");
+        cacheImg.setAttribute("src", config.img);
+        cacheImg.onload = function() {
+            var _config = {};
+            var isIE = function() { return !!document.attachEvent; };
+            var filterId = "filter-" + (~~(new Date() / 1000));
+
+            var createTextElement = function(str, elem) {
+                if (typeof str !== "undefined") {
+                    var height = parseInt(elem.offsetHeight, 10) / 2 - 5;
+                    var div = document.createElement("div");
+                    div.style.textAlign = "center";
+                    div.style.marginTop = height + "px";
+                    div.innerHTML = str;
+                    return div;
+                }
+            };
+            
+            var createImgElement = function(path, elem) {
+                if (typeof path !== "undefined") {
+                    var img = document.createElement("img"),
+                        left = parseInt(elem.style.width, 10) / 2,
+                        top = parseInt(elem.style.height, 10) / 2;
+                    
+                    img.setAttribute("id", "test");
+                    img.setAttribute("src", path);
+                    img.style.position = "relative";
+                    
+                    // for chrome, firefox, safari
+                    if (typeof img.naturalWidth !== "undefined") {
+                        left -= img.naturalWidth / 2;
+                        top -= img.naturalHeight / 2;
+                    }
+                    // for IE
+                    else if (typeof img.runtimeStyle !== "undefined") {
+                        var tmp = img.runtimeStyle,
+                            mem = {width: tmp.width, height: tmp.height};
+                        tmp.width = "auto";
+                        tmp.height = "auto";
+                        var w = img.width,
+                            h = img.height;
+                        tmp.width = mem.width;
+                        tmp.height = mem.height;
+                        left -= w;
+                        top -= h;
+                    }
+                    // for opera
+                    else {
+                        // TODO 
+                    }
+                    
+                    img.style.left = left + "px";
+                    img.style.top  = top + "px";
+                    
+                    return img;
+                }
+            };
+
+            if (typeof config === "object") {
+                _config.target = config.target || document.body;
+                _config.color  = config.color || "#ffffff";
+                _config.transParency = config.transParency || "0.7";
+                _config.img = createImgElement(config.img, _config.target);
+                _config.text = createTextElement(config.text, _config.target);
+            }
+            
+            var filter = document.createElement("div");
+            filter.setAttribute("id", filterId);
+            filter.style.backgroundColor = "#000000";
+            filter.style.MozOpacity      = _config.transParency;
+            filter.style.opacity         = _config.transParency;
+            filter.style.filter          = 'alpha(opacity=' + _config.transParency + ')';
+            filter.style.color           = _config.color;
+            filter.style.width           = _config.target.offsetWidth + "px";
+            filter.style.height          = _config.target.offsetHeight + "px";
+            filter.style.position        = "absolute";
+            filter.style.top             = parseInt(_config.target.offsetTop, 10) + "px";
+            filter.style.left            = parseInt(_config.target.offsetLeft, 10) + "px";
+            
+            if (_config.img)  { filter.appendChild(_config.img); }
+            if (_config.text) { filter.appendChild(_config.text); }
+            document.body.appendChild(filter);
+            
+            var exception = null;
+            try {
+                callback.call();
+            }
+            catch (e) {
+                exception = e;
+            }
+            finally {
+                var _filter = document.getElementById(filterId);
+                _filter.parentNode.removeChild(_filter);
+                if (exception !== null) {
+                    throw new Error(exception.message);
+                }
+            }
+       };
+    }
+});
+
 /**
  * Cacheモジュール
  */
@@ -145,9 +256,9 @@ var Cache = Module.create({
     /**
      * Cacheを返却する
      */
-    getCache: function(keyName) {
+    getCache: function(key) {
         // keyのsuffixとしてUNIX TIMEが付与されている場合は分離する。
-        var key, content, expireTime;
+        var content, expireTime;
         var stack = this.stack;
         for (var keyWithExpire in stack) {
             // keyが先頭で一致した場合、keyとcontentを取り出す
@@ -211,7 +322,7 @@ var Http = Module.create({
                 callback.call(this, response, optArgs);
             }
             else {
-                throw response;
+                throw response.toString();
             }
         };
         
