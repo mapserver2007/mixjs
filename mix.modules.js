@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.5 (2011/06/21)
+ * version: 0.1.6 (2011/06/25)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -92,14 +92,13 @@ var Design = Module.create({
      */
     showFilter: function(config, filterId) {
         this.filterId = filterId || this.defaultFilterId_;
-        
         // 領域指定がない場合は画面全体を指定する
         if (!config.hasOwnProperty("target")) {
             config.target = document.body;
         }
         
         // jQueryオブジェクトをDOMオブジェクトに変換
-        if (config.target.hasOwnProperty("get")) {
+        if (config.target.length !== "undefined") {
             config.target = config.target.get(0);
         }
 
@@ -127,7 +126,7 @@ var Design = Module.create({
                     left = elem.offsetWidth / 2,
                     top = elem.offsetHeight / 2;
                     
-                    img.setAttribute("id", "test");
+                    //img.setAttribute("id", "test");
                     img.setAttribute("src", path);
                     img.style.position = "relative";
 
@@ -159,7 +158,7 @@ var Design = Module.create({
                     
                     img.style.left = left + "px";
                     img.style.top  = top + "px";
-                    
+
                     return img;
                 }
                 else {
@@ -357,7 +356,7 @@ var Http = Module.create({
         var self = this;
         var url              = options.url,
             params           = options.params,
-            optArgs          = options.optArgs,
+            optArgs          = options.optArgs || {},
             successCallback  = options.successCallback,
             optErrorCallback = options.optErrorCallback,
             optStartFunc     = options.optStartFunc,
@@ -385,6 +384,7 @@ var Http = Module.create({
             }
             
             // 動的にjQueryを読み込んだときは遅延ロードする
+            //setTimeout(function() {
             (function() {
                 var f = arguments.callee;
                 try {
@@ -413,6 +413,7 @@ var Http = Module.create({
                     }
                 }
             })();
+            //}, 2000)
         }
     },
     
@@ -474,7 +475,7 @@ var Http = Module.create({
         };
         
         // timeout
-        if (optArgs.timeout !== "undefined") {
+        if (typeof optArgs.timeout !== "undefined") {
             setTimeout(function() {
                 if (!!document.getElementById(jsonpCallback)) {
                     onload = function() {};
@@ -593,6 +594,6 @@ var Http = Module.create({
      * 通信終了後に処理を実行する
      */
     end: function() {
-        this.functionCaller(this.options.optStartFunc, this.options.optArgs);
+        this.functionCaller(this.options.optEndFunc, this.options.optArgs);
     }
 });
