@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.6 (2011/06/25)
+ * version: 0.1.7 (2011/06/26)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -91,19 +91,18 @@ var Design = Module.create({
      * 指定した領域にローディングフィルタをかける
      */
     showFilter: function(config, filterId) {
+        config = config || {};
         this.filterId = filterId || this.defaultFilterId_;
+        
         // 領域指定がない場合は画面全体を指定する
-        if (!config.hasOwnProperty("target")) {
+        if (typeof config.target === "undefined") {
             config.target = document.body;
         }
         
         // jQueryオブジェクトをDOMオブジェクトに変換
-        if (config.target.length !== "undefined") {
+        if (typeof config.target.length === "number") {
             config.target = config.target.get(0);
         }
-
-        // 文字の幅、高さのPixel値に相当する補正値
-        var offsetFix = 7;
 
         var filtering = function(filterId) {
             var createTextElement = function(str, elem) {
@@ -126,7 +125,6 @@ var Design = Module.create({
                     left = elem.offsetWidth / 2,
                     top = elem.offsetHeight / 2;
                     
-                    //img.setAttribute("id", "test");
                     img.setAttribute("src", path);
                     img.style.position = "relative";
 
@@ -197,7 +195,7 @@ var Design = Module.create({
             _filter.style.width           = config.target.offsetWidth + "px";
             _filter.style.height          = config.target.offsetHeight + "px";
             _filter.style.position        = "absolute";
-            _filter.style.top             = offsetParent.top + offsetFix + "px";
+            _filter.style.top             = offsetParent.top + "px";
             _filter.style.left            = offsetParent.left + "px";
             _filter.style.textAlign       = "left";
             
@@ -207,12 +205,11 @@ var Design = Module.create({
             if (config.text) {
                 _filter.appendChild(config.text);
             }
-            document.body.appendChild(_filter);
+            config.target.appendChild(_filter);
         };
 
         // 画像を使用する場合
         if (typeof config.img !== "undefined") {
-            offsetFix = 0;
             var cacheImg = document.createElement("img");
             cacheImg.setAttribute("src", config.img);
             cacheImg.onload = (function(id) {
@@ -383,37 +380,39 @@ var Http = Module.create({
                 }
             }
             
-            // 動的にjQueryを読み込んだときは遅延ロードする
-            //setTimeout(function() {
-            (function() {
-                var f = arguments.callee;
-                try {
-                    $.ajax({
-                        type: optArgs.type || "post",
-                        dataType: optArgs.dataType || "json",
-                        data: params || {},
-                        cache: optArgs.cache || true,
-                        url: url,
-                        success: function(data, dataType) {
-                            self.success(successCallback, data, optArgs.args);
-                        },
-                        error: function(XMLHttpRequest, textStatus, errorThrown) {
-                            self.error(optErrorCallback, textStatus, optArgs.args);
+            // start()処理がonloadがらみの場合、非同期処理になるため
+            // start()より早く$.ajax()が実行されるためsetTimeoutでタイミングをあわせる
+            setTimeout(function() {
+                // 動的にjQueryを読み込んだときは遅延ロードする
+                (function() {
+                    var f = arguments.callee;
+                    try {
+                        $.ajax({
+                            type: optArgs.type || "post",
+                            dataType: optArgs.dataType || "json",
+                            data: params || {},
+                            cache: optArgs.cache || true,
+                            url: url,
+                            success: function(data, dataType) {
+                                self.success(successCallback, data, optArgs.args);
+                            },
+                            error: function(XMLHttpRequest, textStatus, errorThrown) {
+                                self.error(optErrorCallback, textStatus, optArgs.args);
+                            }
+                        });
+                    }
+                    catch(e) {
+                        if (e.message === "$ is not defined") {
+                            setTimeout(function() {
+                                f();
+                            }, 100);
                         }
-                    });
-                }
-                catch(e) {
-                    if (e.message === "$ is not defined") {
-                        setTimeout(function() {
-                            f();
-                        }, 100);
+                        else {
+                            throw e;
+                        }
                     }
-                    else {
-                        throw e;
-                    }
-                }
-            })();
-            //}, 2000)
+                })();
+            }, 10);
         }
     },
     

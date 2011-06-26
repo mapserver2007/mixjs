@@ -86,15 +86,16 @@ asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき�
 
 asyncTest("キャッシュを有効にしたとき、データがキャッシュされること", function() {
     var obj = Module.create({}).mix(Http, Utils, Cache);
+    var url = "http://tepco-usage-api.appspot.com/latest.json";
     obj.xhr({
-        url: "http://tepco-usage-api.appspot.com/latest.json",
+        url: url,
         params: {},
         optArgs: {dataType: "jsonp", cache: true},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
                 same(typeof data, "object", "1回目は通信して取得する");
-                same(typeof obj.getCahce(url), "object", "キャッシュデータが保存されていること");
+                same(typeof obj.getCache(url), "object", "キャッシュデータが保存されていること");
             }, 1000);
         },
         optErrorCallback: function(errorData) {
