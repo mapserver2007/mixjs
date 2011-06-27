@@ -13,22 +13,46 @@
  */
 var Utils = Module.create({
     /**
-     * ホスティングjQueryを開く
+     * jQueryバージョン
      */
     latestJQueryVersion_: "1.6.1",
+    
+    /**
+     * ホスティングjQueryを開く
+     * @param optVersion バージョン
+     */
     loadJQuery: function(optVersion) {
         var url = "https://ajax.googleapis.com/ajax/libs/jquery/"
-        + (this.latestJQueryVersion_ || optVersion)
-        + "/jquery.min.js";
-        var script = document.createElement("script"),
-        body = document.getElementsByTagName("html")[0];
-        script.setAttribute("src", url);
-        script.setAttribute("charset", "UTF-8");
-        body.appendChild(script);
+            + (this.latestJQueryVersion_ || optVersion)
+            + "/jquery.min.js";
+        
+        if (!this.isLoadedScript(url)) {
+            var script = document.createElement("script"),
+            body = document.getElementsByTagName("html")[0];
+            script.setAttribute("src", url);
+            script.setAttribute("charset", "UTF-8");
+            body.appendChild(script);
+        }
+    },
+    
+    /**
+     * スクリプトがすでに読み込まれているかどうか
+     * @param path ファイルパス
+     * @return 読み込まれていればtrue
+     */
+    isLoadedScript: function(path) {
+        var script = document.getElementsByTagName("script");
+        for (var i = 0, len = script.length; i < len; i++) {
+            if (script[i].getAttribute("src") === path) {
+                return true;
+            }
+        }
+        return false;
     },
     
     /**
      * Getterメソッドを動的に定義する
+     * @param constants 定義に必要なハッシュ
      */
     generateGetter: function(constants) {
         var createMethodName = function(str) {
@@ -54,6 +78,9 @@ var Utils = Module.create({
     /**
      * 昇順ソートする
      * 要素がHashの場合は指定キーで昇順ソートする
+     * @param ary 配列
+     * @param key ソートキー
+     * @return ソート済みデータ
      * example:
      * [{name: 'a'}, {name: 'c'}, {name: 'b'}] # 要素がハッシュの場合
      * -> [{name: 'a'}, {name: 'b'}, {name: 'c'}]
@@ -75,12 +102,16 @@ var Utils = Module.create({
     /**
      * 降順ソートする
      * 要素がHashの場合は指定キーで降順ソートする
+     * @return ソート済みデータ
      */
     descSort: function(data, key) {
         return this.ascSort(data, key).reverse();
     }
 });
 
+/**
+ * Designモジュール
+ */
 var Design = Module.create({
     /**
      * デフォルトフィルタ名
@@ -89,10 +120,12 @@ var Design = Module.create({
 
     /**
      * 指定した領域にローディングフィルタをかける
+     * @param config フィルタ設定
+     * @param optFilterId フィルタID
      */
-    showFilter: function(config, filterId) {
+    showFilter: function(config, optFilterId) {
         config = config || {};
-        this.filterId = filterId || this.defaultFilterId_;
+        this.filterId = optFilterId || this.defaultFilterId_;
         
         // 領域指定がない場合は画面全体を指定する
         if (typeof config.target === "undefined") {
@@ -226,9 +259,10 @@ var Design = Module.create({
     
     /**
      * ローディングフィルタを消去する
+     * @param optFilterId フィルタID
      */
-    hideFilter: function(filterId) {
-        var _filter = document.getElementById(filterId || this.filterId);
+    hideFilter: function(optFilterId) {
+        var _filter = document.getElementById(optFilterId || this.filterId);
         _filter.parentNode.removeChild(_filter);
     }
 });
@@ -241,6 +275,7 @@ var Cache = Module.create({
     
     /**
      * 現在の日付(UnixTime)を返却する
+     * @return UnixTime
      */
     getCurrentDate: function() {
         return ~~(new Date() / 1000);
@@ -248,6 +283,9 @@ var Cache = Module.create({
     
     /**
      * UnixTimeをDateに変換する
+     * @param ut UnixTime
+     * @param optTimeZone タイムゾーン
+     * @return Dateオブジェクト
      */
     unixTimeToDate: function(ut, optTimeZone) {
         var tz = optTimeZone || 0;
@@ -258,6 +296,8 @@ var Cache = Module.create({
     
     /**
      * Cacheキーを生成して返却する
+     * @param key キャッシュキー
+     * @param optExpore 期限オブジェクト
      */
     createKey: function(key, optExpire) {
         if (typeof optExpire === "undefined") {
@@ -292,6 +332,9 @@ var Cache = Module.create({
     
     /**
      * Cacheを設定する
+     * @param key キャッシュキー
+     * @param content キャッシュするデータ
+     * @param expire 期限オブジェクト
      */
     setCache: function(key, content, expire) {
         if (typeof this.stack_ === "undefined") {
@@ -302,6 +345,8 @@ var Cache = Module.create({
     
     /**
      * Cacheを返却する
+     * @param key キャッシュキー
+     * @return キャッシュデータ
      */
     getCache: function(key) {
         // keyのsuffixとしてUNIX TIMEが付与されている場合は分離する。
@@ -352,7 +397,7 @@ var Http = Module.create({
     xhr: function(options) {
         var self = this;
         var url              = options.url,
-            params           = options.params,
+            params           = options.params || {},
             optArgs          = options.optArgs || {},
             successCallback  = options.successCallback,
             optErrorCallback = options.optErrorCallback,

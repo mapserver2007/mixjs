@@ -10,15 +10,15 @@ test("定数からGetterメソッドを動的に定義できること", function
     same(obj.getPhoneName(), value, "生成したGetterメソッドから値が取得できる");
 });
 
-(function() {
+asyncTest("ホスティングjQueryをインポートできること", function() {
     var obj = Iphone.mix(Utils);
+    same(typeof jQuery, "undefined", "ホスティングjQueryがインポートされている");
     obj.loadJQuery();
     setTimeout(function() {
-        test("ホスティングjQueryをインポートできること", function() {
-            same(typeof jQuery, "function", "ホスティングjQueryがインポートされている");
-        });
+        start();
+        same(typeof jQuery, "function", "ホスティングjQueryがインポートされている");
     }, 1000);
-})();
+});
 
 test("要素が文字列の配列に対して昇順ソートができること", function() {
     var obj = Iphone.mix(Utils);
