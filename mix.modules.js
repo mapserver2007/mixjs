@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.7 (2011/06/26)
+ * version: 0.1.10 (2011/06/28)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -223,7 +223,7 @@ var Design = Module.create({
             _filter.style.backgroundColor = "#000000";
             _filter.style.MozOpacity      = config.transParency;
             _filter.style.opacity         = config.transParency;
-            _filter.style.filter          = 'alpha(opacity=' + config.transParency + ')';
+            _filter.style.filter          = 'alpha(opacity=' + config.transParency * 100 + ')';
             _filter.style.color           = config.color;
             _filter.style.width           = config.target.offsetWidth + "px";
             _filter.style.height          = config.target.offsetHeight + "px";
@@ -245,10 +245,8 @@ var Design = Module.create({
         if (typeof config.img !== "undefined") {
             var cacheImg = document.createElement("img");
             cacheImg.setAttribute("src", config.img);
-            cacheImg.onload = (function(id) {
-                return function() {
-                    filtering(id);
-                }
+            cacheImg.onLoad = (function(id) {
+                filtering(id);
             })(this.filterId);
         }
         // それ以外
