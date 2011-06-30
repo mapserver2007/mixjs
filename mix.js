@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.1.7 (2011/06/16)
+ * version: 0.1.8 (2011/06/30)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -10,13 +10,13 @@
 
 var Module = {};
 Module.create = function(base) {
-    var isIE = function() { return !!document.attachEvent; };
+    var isIE = [,]!=0;
     var clone = function(o) {
         var c = {};
         for (var prop in o) if (o.hasOwnProperty(prop)) {
             c[prop] = o[prop];
         }
-        if (!isIE()) {
+        if (!isIE) {
             c.__proto__ = o.__proto__;
         }
         return c;
@@ -74,7 +74,7 @@ Module.create = function(base) {
         return true;
     };
     
-    if (isIE()) {
+    if (isIE) {
         base.mix = function() {
             // 親が継承済みの場合を考慮するため親の階層を辿る
             var parents = [];
