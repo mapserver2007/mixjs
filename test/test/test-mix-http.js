@@ -5,14 +5,14 @@ asyncTest("JSONPが実行出来ること", function() {
     obj.xhr({
         url: "http://tepco-usage-api.appspot.com/latest.json",
         params: {},
-        optArgs: {dataType: "jsonp"},
+        args: {dataType: "jsonp"},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
                 same(typeof data, "object", "JSONPを実行してデータが取得できる");
             }, 1000);
         },
-        optErrorCallback: function() {
+        errorCallback: function() {
             setTimeout(function() {
                 start();
                 ok(false, "JSONPが失敗");
@@ -26,14 +26,14 @@ asyncTest("JSONPでエラーが起きても処理が止まらないこと", func
     obj.xhr({
         url: "http://localhost:8080/latest.json",
         params: {},
-        optArgs: {dataType: "jsonp"},
+        args: {dataType: "jsonp"},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
                 ok(false, "JSONPは成功しない");
             }, 1000);
         },
-        optErrorCallback: function(errorData) {
+        errorCallback: function(errorData) {
             setTimeout(function() {
                 start();
                 same(errorData, null, "エラーが発生してもコールバック実行が可能");
@@ -47,14 +47,14 @@ asyncTest("タイムアウトを設定してJSONPが正常に実行できたと�
     obj.xhr({
         url: "http://tepco-usage-api.appspot.com/latest.json",
         params: {},
-        optArgs: {dataType: "jsonp", timeout: 3000},
+        args: {dataType: "jsonp", timeout: 3000},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
                 same(typeof data, "object", "タイムアウトを設定しても正常実行されればエラーにならない");
             }, 1000);
         },
-        optErrorCallback: function() {
+        errorCallback: function() {
             setTimeout(function() {
                 start();
                 ok(false, "意図せずタイムアウト処理が実行される");
@@ -68,14 +68,14 @@ asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき�
     obj.xhr({
         url: "http://localhost:8080/latest.json",
         params: {},
-        optArgs: {dataType: "jsonp", timeout: 10},
+        args: {dataType: "jsonp", timeout: 10},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
                 ok(false, "JSONPは成功しない");
             }, 1000);
         },
-        optErrorCallback: function(errorData) {
+        errorCallback: function(errorData) {
             setTimeout(function() {
                 start();
                 same(errorData, null, "タイムアウトが発生してもコールバック実行が可能");
@@ -90,7 +90,7 @@ asyncTest("キャッシュを有効にしたとき、データがキャッシュ
     obj.xhr({
         url: url,
         params: {},
-        optArgs: {dataType: "jsonp", cache: true},
+        args: {dataType: "jsonp", cache: true},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
@@ -98,7 +98,7 @@ asyncTest("キャッシュを有効にしたとき、データがキャッシュ
                 same(typeof obj.getCache(url), "object", "キャッシュデータが保存されていること");
             }, 1000);
         },
-        optErrorCallback: function(errorData) {
+        errorCallback: function(errorData) {
             setTimeout(function() {
                 start();
                 ok(false, "キャッシュ処理が失敗");

@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.10 (2011/06/28)
+ * version: 0.1.12 (2011/06/30)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -272,24 +272,11 @@ var Cache = Module.create({
     stack_: {},
     
     /**
-     * 現在の日付(UnixTime)を返却する
+     * ミリ秒まで含んだUnixTime*1000の値を返却する
      * @return UnixTime
      */
     getCurrentDate: function() {
-        return ~~(new Date() / 1000);
-    },
-    
-    /**
-     * UnixTimeをDateに変換する
-     * @param ut UnixTime
-     * @param optTimeZone タイムゾーン
-     * @return Dateオブジェクト
-     */
-    unixTimeToDate: function(ut, optTimeZone) {
-        var tz = optTimeZone || 0;
-        var date = new Date(ut * 1000);
-        date.setTime(date.getTime() + 60 * 60 * 1000 * tz);
-        return date;
+        return new Date() / 1e3 * 1000;
     },
     
     /**
@@ -303,7 +290,6 @@ var Cache = Module.create({
         }
 
         var expireTime = this.getCurrentDate();
-
         for (var term in optExpire) {
             switch (term) {
                 // 現在よりx日後
@@ -324,7 +310,6 @@ var Cache = Module.create({
                     break;
             }
         }
-
         return key + "-" + expireTime;
     },
     
@@ -353,7 +338,7 @@ var Cache = Module.create({
             // keyが先頭で一致した場合、keyとcontentを取り出す
             if (keyWithExpire.search(key) === 0) {
                 // 期限付きの場合
-                if (keyWithExpire.match(/^(.*?)-(\d{10})$/)) {
+                if (keyWithExpire.match(/^(.*?)-(\d{13})$/)) {
                     key = RegExp.$1;
                     expireTime = RegExp.$2;
                     // 期限が切れていないかどうか
@@ -386,24 +371,22 @@ var Http = Module.create({
      * 非同期通信を実行する
      * @param options.url              送信先URL
      * @param options.params           送信パラメータ
-     * @param options.optArgs          通信パラメータ
+     * @param options.args          通信パラメータ
      * @param options.successCallback  成功時コールバック関数
-     * @param options.optErrorCallback 失敗時コールバック関数
-     * @param options.optStartFunc     処理開始前に実行する関数
-     * @param options.optEndFunc       処理完了後に実行する関数
+     * @param options.errorCallback 失敗時コールバック関数
+     * @param options.startFunc     処理開始前に実行する関数
+     * @param options.endFunc       処理完了後に実行する関数
      */
     xhr: function(options) {
         var self = this;
         var url              = options.url,
             params           = options.params || {},
-            optArgs          = options.optArgs || {},
+            args             = options.args || {},
             successCallback  = options.successCallback,
-            optErrorCallback = options.optErrorCallback,
-            optStartFunc     = options.optStartFunc,
-            optEndFunc       = options.optEndFunc;
+            errorCallback    = options.errorCallback;
         
         // JSONPの場合はmix.js独自処理を実行
-        if (optArgs.dataType === "jsonp") {
+        if (args.dataType === "jsonp") {
             this.jsonp(options);
         }
         else {
@@ -431,16 +414,16 @@ var Http = Module.create({
                     var f = arguments.callee;
                     try {
                         $.ajax({
-                            type: optArgs.type || "post",
-                            dataType: optArgs.dataType || "json",
-                            data: params || {},
-                            cache: optArgs.cache || true,
+                            type: args.type || "post",
+                            dataType: args.dataType || "json",
+                            data: params,
+                            cache: args.cache || true,
                             url: url,
                             success: function(data, dataType) {
-                                self.success(successCallback, data, optArgs.args);
+                                self.success(successCallback, data, args.args);
                             },
                             error: function(XMLHttpRequest, textStatus, errorThrown) {
-                                self.error(optErrorCallback, textStatus, optArgs.args);
+                                self.error(errorCallback, textStatus, args);
                             }
                         });
                     }
@@ -463,7 +446,7 @@ var Http = Module.create({
      * エラー処理可能なJSONPを実行する
      * @param options.url              送信先URL
      * @param options.params           送信パラメータ
-     * @param options.optArgs          通信パラメータ
+     * @param options.args          通信パラメータ
      * @param options.successCallback  成功時コールバック関数
      * @param options.optErrorCallback 失敗時コールバック関数
      * @param options.optStartFunc     処理開始前に実行する関数
@@ -472,17 +455,15 @@ var Http = Module.create({
     jsonp: function(options) {
         var self = this;
         var url              = options.url,
-            params           = options.params,
-            optArgs          = options.optArgs,
+            params           = options.params || {},
+            args             = options.args || {},
             successCallback  = options.successCallback,
-            optErrorCallback = options.optErrorCallback,
-            optStartFunc     = options.optStartFunc,
-            optEndFunc       = options.optEndFunc;
+            errorCallback    = options.errorCallback;
 
         this.options = options;
         this.start();
         
-        var jsonpCallback = optArgs.jsonp || "callback";
+        var jsonpCallback = args.jsonp || "callback";
         params[jsonpCallback] = "jsonp" + (~~(new Date() / 1000));
     
         var iframe = document.createElement("iframe");
@@ -504,10 +485,10 @@ var Http = Module.create({
             var jsonObject = getCache(url) || doc["jsonObject"];
             if (jsonObject !== undefined) {
                 setCache(url, jsonObject);
-                self.success(successCallback, jsonObject, optArgs.args);
+                self.success(successCallback, jsonObject, args.args);
             }
-            else if (typeof optErrorCallback !== "undefined") {
-                self.error(optErrorCallback, null, optArgs.args);
+            else if (typeof errorCallback !== "undefined") {
+                self.error(errorCallback, null, args.args);
             }
             remove();
         };
@@ -517,21 +498,21 @@ var Http = Module.create({
         };
         
         // timeout
-        if (typeof optArgs.timeout !== "undefined") {
+        if (typeof args.timeout !== "undefined") {
             setTimeout(function() {
                 if (!!document.getElementById(jsonpCallback)) {
                     onload = function() {};
-                    if (typeof optErrorCallback !== "undefined") {
-                        self.error(optErrorCallback, null, optArgs.args);
+                    if (typeof errorCallback !== "undefined") {
+                        self.error(errorCallback, null, args);
                     }
                     remove();
                 }
-            }, optArgs.timeout)
+            }, args.timeout)
         }
         
         // cache
         var setCache = function(key, value, options) {
-            if (optArgs.cache === true) {
+            if (args.cache === true) {
                 if (!isEnableCache()) {
                     throw new Error("require Cache module.")
                 }
@@ -541,7 +522,7 @@ var Http = Module.create({
         
         var getCache = function(key) {
             var data = null;
-            if (optArgs.cache === true) {
+            if (args.cache === true) {
                 if (!isEnableCache()) {
                     throw new Error("require Cache module.")
                 }
@@ -629,13 +610,13 @@ var Http = Module.create({
      * 通信開始前に処理を実行する
      */
     start: function() {
-        this.functionCaller(this.options.optStartFunc, this.options.optArgs);
+        this.functionCaller(this.options.optStartFunc, this.options.args);
     },
     
     /**
      * 通信終了後に処理を実行する
      */
     end: function() {
-        this.functionCaller(this.options.optEndFunc, this.options.optArgs);
+        this.functionCaller(this.options.optEndFunc, this.options.args);
     }
 });
