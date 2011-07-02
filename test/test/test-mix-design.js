@@ -28,16 +28,18 @@ asyncTest("領域を指定しない場合は画面全体にフィルタがかか
 asyncTest("指定した領域がjQueryオブジェクトの場合、正常にフィルタがかかること", function() {
     var obj = Module.create({}).mix(Design, Utils);
     obj.loadJQuery();
-    var elem = $("#qunit-header");
-    obj.showFilter({
-        target: elem
-    });
     setTimeout(function() {
-        start();
-        same($("#qunit-header").children(":last-child").attr("id"), "filter", "指定領域にフィルタがかかっていること");
-        obj.hideFilter();
-        same(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
-    }, 1000);
+        var elem = $("#qunit-header");
+        obj.showFilter({
+            target: elem
+        });
+        setTimeout(function() {
+            start();
+            same($("#qunit-header").children(":last-child").attr("id"), "filter", "指定領域にフィルタがかかっていること");
+            obj.hideFilter();
+            same(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
+        }, 1000);
+    }, 10);
 });
 
 asyncTest("フィルタに文字列が表示できること", function() {

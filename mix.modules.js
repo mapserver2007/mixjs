@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.12 (2011/06/30)
+ * version: 0.1.13 (2011/07/02)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -16,7 +16,7 @@ var Utils = Module.create({
      * jQueryバージョン
      */
     latestJQueryVersion_: "1.6.1",
-    
+
     /**
      * ホスティングjQueryを開く
      * @param optVersion バージョン
@@ -25,7 +25,7 @@ var Utils = Module.create({
         var url = "https://ajax.googleapis.com/ajax/libs/jquery/"
             + (this.latestJQueryVersion_ || optVersion)
             + "/jquery.min.js";
-        
+
         if (!this.isLoadedScript(url)) {
             var script = document.createElement("script"),
             body = document.getElementsByTagName("html")[0];
@@ -34,7 +34,7 @@ var Utils = Module.create({
             body.appendChild(script);
         }
     },
-    
+
     /**
      * スクリプトがすでに読み込まれているかどうか
      * @param path ファイルパス
@@ -49,7 +49,7 @@ var Utils = Module.create({
         }
         return false;
     },
-    
+
     /**
      * Getterメソッドを動的に定義する
      * @param constants 定義に必要なハッシュ
@@ -74,7 +74,7 @@ var Utils = Module.create({
             })(name);
         }
     },
-    
+
     /**
      * 昇順ソートする
      * 要素がHashの場合は指定キーで昇順ソートする
@@ -98,7 +98,7 @@ var Utils = Module.create({
         }
         return ary;
     },
-    
+
     /**
      * 降順ソートする
      * 要素がHashの場合は指定キーで降順ソートする
@@ -118,20 +118,42 @@ var Design = Module.create({
      */
     defaultFilterId_: "filter",
 
+
+    setFilterImageInfo: function(img) {
+        var info = {};
+        // for chrome, firefox, safari
+        if (typeof img.naturalWidth !== "undefined") {
+            info.width = img.naturalWidth;
+            info.height = img.naturalHeight;
+        }
+        // for IE
+        else if (typeof img.runtimeStyle !== "undefined") {
+            info.width = img.runtimeStyle.width;
+            info.height = img.runtimeStyle.height;
+        }
+        // for opera
+        else {
+        // TODO
+        }
+        this.filterImage_ = info;
+    },
+
+
     /**
      * 指定した領域にローディングフィルタをかける
      * @param config フィルタ設定
      * @param optFilterId フィルタID
      */
     showFilter: function(config, optFilterId) {
+        var self = this;
         config = config || {};
         this.filterId = optFilterId || this.defaultFilterId_;
-        
+
         // 領域指定がない場合は画面全体を指定する
         if (typeof config.target === "undefined") {
             config.target = document.body;
         }
-        
+
         // jQueryオブジェクトをDOMオブジェクトに変換
         if (typeof config.target.length === "number") {
             config.target = config.target.get(0);
@@ -140,7 +162,7 @@ var Design = Module.create({
         var filtering = function(filterId) {
             var createTextElement = function(str, elem) {
                 if (typeof str !== "undefined") {
-                    var height = parseInt(elem.offsetHeight, 10) / 2 - 5;
+                    var height = parseInt(elem.offsetHeight, 10) / 2;
                     var div = document.createElement("div");
                     div.style.textAlign = "center";
                     div.style.marginTop = height + "px";
@@ -151,45 +173,19 @@ var Design = Module.create({
                     return null;
                 }
             };
-            
+
             var createImgElement = function(path, elem) {
                 if (typeof path !== "undefined") {
+                    var filterImg = self.filterImage_;
                     var img = document.createElement("img"),
-                    left = elem.offsetWidth / 2,
-                    top = elem.offsetHeight / 2;
-                    
+                        left = (elem.offsetWidth - filterImg.width) / 2,
+                        top = (elem.offsetHeight - filterImg.height) / 2;
+    
                     img.setAttribute("src", path);
                     img.style.position = "relative";
-
-                    // for chrome, firefox, safari
-                    if (typeof img.naturalWidth !== "undefined") {
-                        left -= img.naturalWidth / 2;
-                        top -= img.naturalHeight / 2;
-                    }
-                    // for IE
-                    else if (typeof img.runtimeStyle !== "undefined") {
-                        var tmp = img.runtimeStyle,
-                        mem = {
-                            width: tmp.width,
-                            height: tmp.height
-                            };
-                        tmp.width = "auto";
-                        tmp.height = "auto";
-                        var w = img.width,
-                        h = img.height;
-                        tmp.width = mem.width;
-                        tmp.height = mem.height;
-                        left -= w;
-                        top -= h;
-                    }
-                    // for opera
-                    else {
-                    // TODO
-                    }
-                    
                     img.style.left = left + "px";
                     img.style.top  = top + "px";
-
+    
                     return img;
                 }
                 else {
@@ -231,7 +227,7 @@ var Design = Module.create({
             _filter.style.top             = offsetParent.top + "px";
             _filter.style.left            = offsetParent.left + "px";
             _filter.style.textAlign       = "left";
-            
+
             if (config.img)  {
                 _filter.appendChild(config.img);
             }
@@ -243,18 +239,28 @@ var Design = Module.create({
 
         // 画像を使用する場合
         if (typeof config.img !== "undefined") {
+            var isIE = [,]!=0;
             var cacheImg = document.createElement("img");
             cacheImg.setAttribute("src", config.img);
-            cacheImg.onLoad = (function(id) {
-                filtering(id);
-            })(this.filterId);
+            if (isIE) {
+                cacheImg.onLoad = (function(id) {
+                    self.setFilterImageInfo(cacheImg);
+                    filtering(id);
+                })(this.filterId);
+            }
+            else {
+                cacheImg.onload = function() {
+                    self.setFilterImageInfo(this);
+                    filtering(self.filterId);
+                };
+            }
         }
         // それ以外
         else {
             filtering(this.filterId);
         }
     },
-    
+
     /**
      * ローディングフィルタを消去する
      * @param optFilterId フィルタID
@@ -270,7 +276,7 @@ var Design = Module.create({
  */
 var Cache = Module.create({
     stack_: {},
-    
+
     /**
      * ミリ秒まで含んだUnixTime*1000の値を返却する
      * @return UnixTime
@@ -278,7 +284,7 @@ var Cache = Module.create({
     getCurrentDate: function() {
         return new Date() / 1e3 * 1000;
     },
-    
+
     /**
      * Cacheキーを生成して返却する
      * @param key キャッシュキー
@@ -312,7 +318,7 @@ var Cache = Module.create({
         }
         return key + "-" + expireTime;
     },
-    
+
     /**
      * Cacheを設定する
      * @param key キャッシュキー
@@ -325,7 +331,7 @@ var Cache = Module.create({
         }
         this.stack_[this.createKey(key, expire)] = content;
     },
-    
+
     /**
      * Cacheを返却する
      * @param key キャッシュキー
@@ -384,7 +390,7 @@ var Http = Module.create({
             args             = options.args || {},
             successCallback  = options.successCallback,
             errorCallback    = options.errorCallback;
-        
+
         // JSONPの場合はmix.js独自処理を実行
         if (args.dataType === "jsonp") {
             this.jsonp(options);
@@ -392,7 +398,7 @@ var Http = Module.create({
         else {
             this.options = options;
             this.start();
-            
+
             // jQueryが読み込まれていないときはホスティング先から読み込む
             if (typeof jQuery === "undefined") {
                 if (typeof Utils !== "undefined") {
@@ -405,7 +411,7 @@ var Http = Module.create({
                     throw new Error("require jQuery.");
                 }
             }
-            
+
             // start()処理がonloadがらみの場合、非同期処理になるため
             // start()より早く$.ajax()が実行されるためsetTimeoutでタイミングをあわせる
             setTimeout(function() {
@@ -441,16 +447,16 @@ var Http = Module.create({
             }, 10);
         }
     },
-    
+
     /**
      * エラー処理可能なJSONPを実行する
      * @param options.url              送信先URL
      * @param options.params           送信パラメータ
      * @param options.args          通信パラメータ
      * @param options.successCallback  成功時コールバック関数
-     * @param options.optErrorCallback 失敗時コールバック関数
-     * @param options.optStartFunc     処理開始前に実行する関数
-     * @param options.optEndFunc       処理完了後に実行する関数
+     * @param options.errorCallback 失敗時コールバック関数
+     * @param options.startFunc     処理開始前に実行する関数
+     * @param options.endFunc       処理完了後に実行する関数
      */
     jsonp: function(options) {
         var self = this;
@@ -462,25 +468,25 @@ var Http = Module.create({
 
         this.options = options;
         this.start();
-        
+
         var jsonpCallback = args.jsonp || "callback";
         params[jsonpCallback] = "jsonp" + (~~(new Date() / 1000));
-    
+
         var iframe = document.createElement("iframe");
         iframe.setAttribute("id", jsonpCallback);
         iframe.style.display = "none";
         document.body.appendChild(iframe);
         var doc = iframe.contentWindow.document;
-        
+
         var qlist = [];
         for (var key in params) { qlist.push(key + "=" + params[key]); }
         var requestURL = url + "?" + qlist.join("&")
-        
+
         var remove = function() {
             var elem = document.getElementById(jsonpCallback);
             elem.parentNode.removeChild(elem);
         };
-        
+
         var onload = function() {
             var jsonObject = getCache(url) || doc["jsonObject"];
             if (jsonObject !== undefined) {
@@ -496,7 +502,7 @@ var Http = Module.create({
         var isEnableCache = function() {
             return typeof Cache !== "undefined" && self.has(Cache);
         };
-        
+
         // timeout
         if (typeof args.timeout !== "undefined") {
             setTimeout(function() {
@@ -509,7 +515,7 @@ var Http = Module.create({
                 }
             }, args.timeout)
         }
-        
+
         // cache
         var setCache = function(key, value, options) {
             if (args.cache === true) {
@@ -519,7 +525,7 @@ var Http = Module.create({
                 self.setCache(key, value, options);
             }
         };
-        
+
         var getCache = function(key) {
             var data = null;
             if (args.cache === true) {
@@ -530,7 +536,7 @@ var Http = Module.create({
             }
             return data;
         }
-        
+
         // キャッシュが有効で、データがキャッシュされている場合
         if (getCache(url)) {
             onload();
@@ -548,7 +554,7 @@ var Http = Module.create({
             else {
                 iframe.onload = onload;
             }
-            
+
             doc.open();
             doc.write('<script type="text/javascript">'
                 + 'function ' + params[jsonpCallback] + '(response) { document["jsonObject"] = response; }'
@@ -557,7 +563,7 @@ var Http = Module.create({
             doc.close();
         }
     },
-    
+
     /**
      * 通信後のコールバックを実行する
      * @param callback コールバック関数名
@@ -574,7 +580,7 @@ var Http = Module.create({
             throw new Error(response.toString());
         }
     },
-    
+
     /**
      * 指定した関数を実行する
      * @param f    関数名
@@ -585,7 +591,7 @@ var Http = Module.create({
             f.call(null, args);
         }
     },
-    
+
     /**
      * 通信成功後のコールバックを実行する
      * @param callback コールバック関数名
@@ -595,7 +601,7 @@ var Http = Module.create({
     success: function(callback, response, args) {
         this.callbackCaller(callback, response, args);
     },
-    
+
     /**
      * 通信失敗後のコールバックを実行する
      * @param callback コールバック関数名
@@ -605,18 +611,18 @@ var Http = Module.create({
     error: function(callback, response, args) {
         this.callbackCaller(callback, response, args);
     },
-    
+
     /**
      * 通信開始前に処理を実行する
      */
     start: function() {
-        this.functionCaller(this.options.optStartFunc, this.options.args);
+        this.functionCaller(this.options.startFunc, this.options.args);
     },
-    
+
     /**
      * 通信終了後に処理を実行する
      */
     end: function() {
-        this.functionCaller(this.options.optEndFunc, this.options.args);
+        this.functionCaller(this.options.endFunc, this.options.args);
     }
 });
