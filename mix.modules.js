@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.13 (2011/07/02)
+ * version: 0.1.14 (2011/07/03)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -81,9 +81,9 @@ var Utils = Module.create({
      * @param ary 配列
      * @param key ソートキー
      * @return ソート済みデータ
-     * example:
-     * [{name: 'a'}, {name: 'c'}, {name: 'b'}] # 要素がハッシュの場合
-     * -> [{name: 'a'}, {name: 'b'}, {name: 'c'}]
+     * @example
+     *  [{name: 'a'}, {name: 'c'}, {name: 'b'}] # 要素がハッシュの場合
+     *  -> [{name: 'a'}, {name: 'b'}, {name: 'c'}]
      */
     ascSort: function(ary, key) {
         // 要素がHashの場合
@@ -110,6 +110,119 @@ var Utils = Module.create({
 });
 
 /**
+ * Cookieモジュール
+ */
+var Cookie = Module.create({
+    /**
+     * Cookieを設定、取得する
+     * @param key Cookieのキー
+     * @param value Cookieの値
+     * @param options Cookieの設定
+     * @example
+     *  {expires: {day: 1, hour: 1, min: 1, sec: 1}
+     *   domain: "www.yahoo.co.jp"}
+     */
+    cookie: function(key, value, options) {
+        this.options_ = options || {};
+        if (typeof value !== "undefined") {
+            this.setCookie(key, value);
+        }
+        else {
+            return this.getCookie(key);
+        }
+    },
+    
+    /**
+     * Cookieを設定する
+     * @param key Cookieのキー
+     * @param value Cookieの値
+     */
+    setCookie: function(key, value) {
+        var options = this.options_;
+        // 値がnullの場合は有効期限も初期化する
+        if (typeof value === null) {
+            value = "";
+            options.expires = {};
+        }
+        
+        var cookie = [];
+        cookie.push(key + "=" + encodeURIComponent(value));
+        
+        var expireTime = function(expire) {
+            var time = 0;
+            for (var term in expire) {
+                switch (term) {
+                    // 現在よりx日後
+                    case "day":
+                        time += 60 * 60 * 24 * expire[term];
+                        break;
+                    // 現在よりx時間後
+                    case "hour":
+                        time += 60 * 60 * expire[term];
+                        break;
+                    // 現在よりx分後
+                    case "min":
+                        time += 60 * expire[term];
+                        break;
+                    // 現在よりx秒後
+                    case "sec":
+                        time += expire[term];
+                        break;
+                }
+            }
+            return time;
+        };
+
+        var expireUnixTime = (function(expire) {
+            var time = ~~(new Date() / 1000);
+            return time + expireTime(expire);
+        })(options.expires);
+        
+        var unixTimeToDate = function(ut, optTimeZone) {
+            var tz = optTimeZone || 0;
+            var date = new Date(ut * 1000);
+            date.setTime(date.getTime() + 60 * 60 * 1000 * tz);
+            return date;
+        };
+
+        if (options.expires) {
+            var date;
+            if (typeof expireUnixTime === "number") {
+                date = new Date();
+                date.setTime(unixTimeToDate(expireUnixTime));
+            }
+            else {
+                throw new Error("Illegal arguments of expires: " + options.expires);
+            }
+            cookie.push("expires=" + date.toUTCString());
+            cookie.push("max-age=" + expireTime(options.expires));
+        }
+        
+        cookie.push(options.path ? "path=" + options.path : "");
+        cookie.push(options.domain ? "domain=" + options.domain : "");
+        cookie.push(options.secure ? "secure" : "");
+        document.cookie = cookie.join(";");
+    },
+    
+    /**
+     * Cookieを取得する
+     * @param key Cookieのキー
+     */
+    getCookie: function(key) {
+        if (document.cookie && document.cookie !== "") {
+            var cookies = document.cookie.split(";");
+            for (var i = 0, len = cookies.length; i < len; i++) {
+                var cookie = cookies[i].replace(/^[\s\u3000\n]+|[\s\u3000\n]+$/g, "");
+                if (cookie.substring(0, key.length + 1) == (key + '=')) {
+                    return decodeURIComponent(cookie.substring(key.length + 1));
+                }
+            }
+        }
+        return null;
+    }
+});
+
+/**
  * Designモジュール
  */
 var Design = Module.create({
@@ -118,7 +231,10 @@ var Design = Module.create({
      */
     defaultFilterId_: "filter",
 
-
+    /**
+     * ローディングに使用する画像の幅、高さを設定する
+     * @param img 画像オブジェクト
+     */
     setFilterImageInfo: function(img) {
         var info = {};
         // for chrome, firefox, safari
@@ -137,7 +253,6 @@ var Design = Module.create({
         }
         this.filterImage_ = info;
     },
-
 
     /**
      * 指定した領域にローディングフィルタをかける
@@ -377,11 +492,11 @@ var Http = Module.create({
      * 非同期通信を実行する
      * @param options.url              送信先URL
      * @param options.params           送信パラメータ
-     * @param options.args          通信パラメータ
+     * @param options.args             通信パラメータ
      * @param options.successCallback  成功時コールバック関数
-     * @param options.errorCallback 失敗時コールバック関数
-     * @param options.startFunc     処理開始前に実行する関数
-     * @param options.endFunc       処理完了後に実行する関数
+     * @param options.errorCallback    失敗時コールバック関数
+     * @param options.startFunc        処理開始前に実行する関数
+     * @param options.endFunc          処理完了後に実行する関数
      */
     xhr: function(options) {
         var self = this;
@@ -452,11 +567,11 @@ var Http = Module.create({
      * エラー処理可能なJSONPを実行する
      * @param options.url              送信先URL
      * @param options.params           送信パラメータ
-     * @param options.args          通信パラメータ
+     * @param options.args             通信パラメータ
      * @param options.successCallback  成功時コールバック関数
-     * @param options.errorCallback 失敗時コールバック関数
-     * @param options.startFunc     処理開始前に実行する関数
-     * @param options.endFunc       処理完了後に実行する関数
+     * @param options.errorCallback    失敗時コールバック関数
+     * @param options.startFunc        処理開始前に実行する関数
+     * @param options.endFunc          処理完了後に実行する関数
      */
     jsonp: function(options) {
         var self = this;
