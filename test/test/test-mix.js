@@ -36,7 +36,7 @@ test("多重継承が連続でできること", function() {
 
 test("Mix-inした後のオブジェクトに対してMix-inできること", function() {
     var obj = Iphone.mix(Feature);
-    obj.mix(Telephone);
+    obj = obj.mix(Telephone);
     same(obj.getPhoneName(), "iphone", "子オブジェクトにアクセスできること");
     same(obj.parent.getPhoneName(), "garake-", "親オブジェクトにアクセスできること");
     same(obj.parent.parent.getPhoneName(), "kurodenwa", "親の親オブジェクトにアクセスできること");
@@ -118,7 +118,7 @@ test("Module.create()で生成したオブジェクト自身はMix-inの影響�
     var obj = Iphone.mix(Feature).mix(Telephone);
     same(obj.getType(), "old type", "Mix-inしたオブジェクトは継承したメソッドを取得できる");
     raises(function() {
-    	Iphone.getType();
+        Iphone.getType();
     }, "多重継承の影響をうけていなければで未継承オブジェクトのメソッドは取得できない");
 });
 
@@ -126,7 +126,7 @@ test("Module.create()で生成したオブジェクト自身は多重継承の�
     var obj = Iphone.mix(Feature, Telephone);
     same(obj.getType(), "old type", "多重継承したオブジェクトは継承したメソッドを取得できる");
     raises(function() {
-    	Iphone.getType();
+        Iphone.getType();
     }, "多重継承の影響をうけていなければで未継承オブジェクトのメソッドは取得できない");
 });
 
@@ -227,6 +227,19 @@ test("モジュールにparentメソッドを定義した場合は例外が発�
     same(message, "parent method can't be defined.", "parentメソッドは定義不可");
 });
 
+test("モジュールに__parent__メソッドを定義した場合は例外が発生すること", function() {
+    var message;
+    try {
+        var ChinaPad = Module.create({
+            __parent__: function() {}
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "__parent__ method can't be defined.", "hasメソッドは定義不可");
+});
+
 test("モジュールにhasメソッドを定義した場合は例外が発生すること", function() {
     var message;
     try {
@@ -238,4 +251,41 @@ test("モジュールにhasメソッドを定義した場合は例外が発生�
         message = e.message;
     }
     same(message, "has method can't be defined.", "hasメソッドは定義不可");
+});
+
+test("内部用親参照プロパティと外部用親参照プロパティを併用できないこと", function() {
+    var obj = Psp.mix(PspGo, PsVita);
+    var message;
+    
+    try {
+        obj.parent.__parent__.getName();
+    }
+    catch (e) {
+        message = e.message;
+    }
+    notStrictEqual(typeof message, "undefined", "__parent__とparentは併用できない");
+    
+    try {
+        obj.__parent__.parent.getName();
+    }
+    catch (e) {
+        message = e.message;
+    }
+    notStrictEqual(typeof message, "undefined", "parentと__parent__は併用できない");
+});
+
+test("メソッドの親参照時に外部用親参照プロパティ経由の場合、子モジュール内のメソッドが呼ばれること", function() {
+    var obj = Psp.mix(PspGo, PsVita);
+    same(obj.parent.getName(), "PSP", "外部用親参照プロパティ経由時は子モジュールのメソッドが呼ばれる");
+    same(obj.parent.myName(), "PSPGO", "外部用親参照プロパティ経由でもレシーバがthisでない場合はそのまま親メソッドが返す値を取得する");
+    same(obj.parent.parent.getName(), "PSP", "外部用親参照プロパティ経由時は子モジュールのメソッドが呼ばれる");
+    same(obj.parent.parent.myName(), "PSVITA", "外部用親参照プロパティ経由でもレシーバがthisでない場合はそのまま親の親メソッドが返す値を取得する");
+});
+
+test("メソッドの親参照時に内部用親参照プロパティ経由の場合、親モジュール内のメソッドが呼ばれること", function() {
+    var obj = Psp.mix(PspGo, PsVita);
+    same(obj.__parent__.getName(), "PSPGO", "内部用親参照プロパティ経由時は親モジュールのメソッドが呼ばれる");
+    same(obj.__parent__.myName(), "PSPGO", "内部用親参照プロパティ経由でもレシーバに関係なく親モジュールのメソッドが呼ばれる");
+    same(obj.__parent__.__parent__.getName(), "PSVITA", "内部用親参照プロパティ経由時は子モジュールのメソッドが呼ばれる");
+    same(obj.__parent__.__parent__.myName(), "PSVITA", "内部用親参照プロパティ経由でもレシーバに関係なく親の親メソッドが返す値を取得する");
 });

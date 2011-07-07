@@ -37,6 +37,42 @@ Therefore mix-in object can refer to parent method using "parent" property.
     console.log(obj.getName()); // iphone
     console.log(obj.parent.getName()); // garake-
 
+###change "this" receiver when using "parent"
+When refer to parent from child, parent's receiver will change.  
+(In this case "receiver" is "this" object in the module)
+
+This is sample:
+
+    var Psp = Module.create({
+        myName: function() {
+            return "PSP";
+        },
+        getName: function() {
+            return this.myName();
+        }
+    });
+
+    var PspGo = Module.create({
+        myName: function() {
+            return "PSPGO";
+        },
+        getName: function() {
+            return this.myName();
+        }
+    });
+    
+    var obj = Psp.mix(PspGo);
+    obj.parent.getName(); // PSP
+myName() is called by "this" receiver from getName().  
+If called getName() using "parent", "this" receiver is a child.  
+In other words, getName() receiver equals "Psp" module (not "PspGo" module).  
+
+However, If does not refer to "this" by using "parent", receiver does not change.  
+
+    obj.parent.myName(); // PSPGO
+
+This is the same behavior such as Java language.  
+
 ***
 
 ###mix-in chain, multiple inheritance

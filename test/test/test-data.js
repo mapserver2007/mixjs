@@ -31,3 +31,30 @@ var Ipad = Module.create({
         return "ipad";
     }
 });
+
+var Psp = Module.create({
+    myName: function() {
+        return "PSP";
+    },
+    getName: function() {
+        return this.myName();
+    }
+});
+
+var PspGo = Module.create({
+    myName: function() {
+        return "PSPGO";
+    },
+    getName: function() {
+        return this.myName();
+    }
+});
+
+var PsVita = Module.create({
+    myName: function() {
+        return "PSVITA";
+    },
+    getName: function() {
+        return this.myName();
+    }
+});
