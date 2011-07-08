@@ -15,7 +15,7 @@ var Utils = Module.create({
     /**
      * jQueryバージョン
      */
-    latestJQueryVersion_: "1.6.1",
+    latestJQueryVersion_: "1.6.2",
 
     /**
      * ホスティングjQueryを開く

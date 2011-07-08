@@ -57,19 +57,19 @@ This is sample:
             return "PSPGO";
         },
         getName: function() {
-            return this.myName();
+            return this.parent.getName();
         }
     });
     
-    var obj = Psp.mix(PspGo);
-    obj.parent.getName(); // PSP
+    var obj = PspGo.mix(Psp);
+    obj.getName(); // PSPGO
 myName() is called by "this" receiver from getName().  
 If called getName() using "parent", "this" receiver is a child.  
-In other words, getName() receiver equals "Psp" module (not "PspGo" module).  
+In other words, "this.parent.getName()"'s receiver equals "PspGo" module (not "Psp" module).  
 
 However, If does not refer to "this" by using "parent", receiver does not change.  
 
-    obj.parent.myName(); // PSPGO
+    obj.parent.myName(); // PSP
 
 This is the same behavior such as Java language.  
 
@@ -101,8 +101,8 @@ Throw exception if define the same module.
 
     Iphone.mix(Feature).mix(Iphone); // throw exception
 
-### Can't define "mix", "parent", "has" in module.
-"mix", "parent", "has" method or property is not used because it is reserved in mix.js.
+### Can't define "mix", "parent", "\__parent\__", "has" in module.
+"mix", "parent", "\__parent\__", "has" method or property is not used because it is reserved in mix.js.
     
     // throw exception
     var Iphone = Module.create({

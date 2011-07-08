@@ -24,7 +24,7 @@ Module.create = function(base) {
     };
     
     var inArray = function(elem, array) {
-        for (var i = 0, length = array.length; i < length; i++) {
+        for (var i = 0, len = array.length; i < len; i++) {
             if (array[i] === elem) {
                 return i;
             }
