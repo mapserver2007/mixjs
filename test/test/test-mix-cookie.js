@@ -1,7 +1,8 @@
 module("mix.cookie.js");
 
 test("Cookieを設定できること", function() {
-    var obj = Module.create({}).mix(Cookie);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Cookie);
     var key = "key-" + ~~(new Date() / 1000);
     var value = "value";
     obj.cookie(key, value);
@@ -9,7 +10,8 @@ test("Cookieを設定できること", function() {
 });
 
 test("ホワイトスペースを含む値をCookieを設定できること", function() {
-    var obj = Module.create({}).mix(Cookie);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Cookie);
     var key = "key-" + ~~(new Date() / 1000);
     var value = "test value";
     obj.cookie(key, value);
@@ -17,7 +19,8 @@ test("ホワイトスペースを含む値をCookieを設定できること", fu
 });
 
 test("有効期間内の場合、Cookieを取得できること", function() {
-    var obj = Module.create({}).mix(Cookie);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Cookie);
     var key = "in-expire";
     var value = "value with expire";
     var expires = {min: 1}; // 1分間有効
@@ -26,7 +29,8 @@ test("有効期間内の場合、Cookieを取得できること", function() {
 });
 
 asyncTest("有効期間を過ぎた場合、Cookieが取得できないこと", function() {
-    var obj = Module.create({}).mix(Cookie);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Cookie);
     var key = "out-expire";
     var value = "value with expire";
     var expires = {sec: 1}; // 1秒間有効
@@ -38,7 +42,8 @@ asyncTest("有効期間を過ぎた場合、Cookieが取得できないこと", 
 });
 
 test("外部ドメインを設定した場合、Cookieを取得できないこと", function() {
-    var obj = Module.create({}).mix(Cookie);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Cookie);
     var key = "external-domain";
     var value = "value";
     obj.cookie(key, value, {domain: "www.yahoo.co.jp"});

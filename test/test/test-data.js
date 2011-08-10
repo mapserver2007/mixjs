@@ -1,5 +1,5 @@
 // module define
-var Telephone = Module.create({
+Mixjs.module("Telephone", {
     getPhoneName: function() {
         return "kurodenwa";
     },
@@ -8,49 +8,58 @@ var Telephone = Module.create({
     }
 });
 
-var Feature = Module.create({
+Mixjs.module("Feature", {
     getPhoneName: function() {
         return "garake-";
     }
 });
 
-var Iphone = Module.create({
+Mixjs.module("Iphone", {
     getPhoneName: function() {
         return "iphone";
     }
 });
 
-var Android = Module.create({
+Mixjs.module("Android", {
     getPhoneName: function() {
         return "android";
     }
 });
 
-var Ipad = Module.create({
+Mixjs.module("Ipad", {
     getPhoneName: function() {
         return "ipad";
     }
 });
 
-var Psp = Module.create({
+Mixjs.module("Psp", {
     myName: function() {
         return "PSP";
     },
     getName: function() {
         return this.myName();
+    },
+    getBaseName: function() {
+        return this.base.myName();
+    },
+    getChainName: function() {
+        return this.base.getChainName();
     }
 });
 
-var PspGo = Module.create({
+Mixjs.module("PspGo", {
     myName: function() {
         return "PSPGO";
     },
     getName: function() {
         return this.myName();
+    },
+    getChainName: function() {
+        return this.myName();
     }
 });
 
-var PsVita = Module.create({
+Mixjs.module("PsVita", {
     myName: function() {
         return "PSVITA";
     },

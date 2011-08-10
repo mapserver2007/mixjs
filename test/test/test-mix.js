@@ -1,7 +1,7 @@
 module("mix.js");
 
-test("Module.create()でmixメソッドが追加されること", function() {
-    var obj = Module.create({})
+test("Mixjs.module()でmixメソッドが追加されること", function() {
+    Mixjs.module("obj", {})
     same(obj.hasOwnProperty("mix"), true, "mixメソッドが追加されること");
 });
 
@@ -114,7 +114,7 @@ test("多重継承した後のオブジェクトを親にした多重継承が�
     same(obj.parent.parent.parent.parent.getPhoneName(), "android", "親の親の親の親オブジェクトにアクセスできること");
 });
 
-test("Module.create()で生成したオブジェクト自身はMix-inの影響を受けないこと", function() {
+test("Mixjs.module()で生成したオブジェクト自身はMix-inの影響を受けないこと", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
     same(obj.getType(), "old type", "Mix-inしたオブジェクトは継承したメソッドを取得できる");
     raises(function() {
@@ -122,7 +122,7 @@ test("Module.create()で生成したオブジェクト自身はMix-inの影響�
     }, "多重継承の影響をうけていなければで未継承オブジェクトのメソッドは取得できない");
 });
 
-test("Module.create()で生成したオブジェクト自身は多重継承の影響を受けないこと", function() {
+test("Mixjs.module()で生成したオブジェクト自身は多重継承の影響を受けないこと", function() {
     var obj = Iphone.mix(Feature, Telephone);
     same(obj.getType(), "old type", "多重継承したオブジェクトは継承したメソッドを取得できる");
     raises(function() {
@@ -193,7 +193,7 @@ test("多重継承済みオブジェクトにMix-inしていないモジュー�
 test("同じモジュールをMix-inした場合は例外が発生すること", function() {
     var message;
     try {
-        var obj = Iphone.mix(Feature).mix(Iphone);
+        Iphone.mix(Feature).mix(Iphone);
     }
     catch (e) {
         message = e.message;
@@ -201,10 +201,24 @@ test("同じモジュールをMix-inした場合は例外が発生すること",
     same(message, "mix-in the same module.", "同じモジュールをMix-inした場合は例外が発生する");
 });
 
+test("includeを使ってインクルードしたモジュールと同じモジュールをMix-inした場合は例外が発生すること", function() {
+    var message;
+    try {
+        var obj = Mixjs.module({
+            include: Iphone
+        });
+        obj.mix(Iphone);
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "mix-in the same module.", "includeを使って同じモジュールをMix-inした場合は例外が発生する");
+});
+
 test("モジュールにmixメソッドを定義した場合は例外が発生すること", function() {
     var message;
     try {
-        var ChinaPad = Module.create({
+        Mixjs.module("ChinaPad", {
             mix: function() {}
         });
     }
@@ -217,7 +231,7 @@ test("モジュールにmixメソッドを定義した場合は例外が発生�
 test("モジュールにparentメソッドを定義した場合は例外が発生すること", function() {
     var message;
     try {
-        var ChinaPad = Module.create({
+        Mixjs.module("ChinaPad", {
             parent: function() {}
         });
     }
@@ -227,23 +241,10 @@ test("モジュールにparentメソッドを定義した場合は例外が発�
     same(message, "parent method can't be defined.", "parentメソッドは定義不可");
 });
 
-test("モジュールに__parent__メソッドを定義した場合は例外が発生すること", function() {
-    var message;
-    try {
-        var ChinaPad = Module.create({
-            __parent__: function() {}
-        });
-    }
-    catch (e) {
-        message = e.message;
-    }
-    same(message, "__parent__ method can't be defined.", "hasメソッドは定義不可");
-});
-
 test("モジュールにhasメソッドを定義した場合は例外が発生すること", function() {
     var message;
     try {
-        var ChinaPad = Module.create({
+        Mixjs.module("ChinaPad", {
             has: function() {}
         });
     }
@@ -253,39 +254,270 @@ test("モジュールにhasメソッドを定義した場合は例外が発生�
     same(message, "has method can't be defined.", "hasメソッドは定義不可");
 });
 
-test("内部用親参照プロパティと外部用親参照プロパティを併用できないこと", function() {
-    var obj = Psp.mix(PspGo, PsVita);
+test("モジュールにbaseメソッドを定義した場合は例外が発生すること", function() {
     var message;
-    
     try {
-        obj.parent.__parent__.getName();
+        Mixjs.module("ChinaPad", {
+            base: function() {}
+        });
     }
     catch (e) {
         message = e.message;
     }
-    notStrictEqual(typeof message, "undefined", "__parent__とparentは併用できない");
-    
+    same(message, "base method can't be defined.", "baseメソッドは定義不可");
+});
+
+test("includeメソッドにMixjs#moduleで作成したオブジェクトが指定された場合、定義したモジュールにMix-inされること", function() {
+    var obj = Mixjs.module({
+        include: Iphone
+    });
+    same(obj.has(Iphone), true, "includeでMix-inが実行可能");
+});
+
+test("includeメソッドにMixjs#moduleで作成したオブジェクトが配列で指定された場合、定義したモジュールに順番にMix-inされること", function() {
+    var obj = Mixjs.module({
+        include: [Iphone, Feature]
+    });
+    same(obj.parent.getPhoneName(), "iphone", "includeでMix-inが実行可能で、親は1番目のモジュールになる");
+    same(obj.parent.parent.getPhoneName(), "garake-", "includeでMix-inが実行可能で、親は2番目のモジュールになる");
+});
+
+test("includeメソッドにMixjs#moduleで作成したオブジェクト以外が指定された場合、例外が発生すること", function() {
+    var message;
     try {
-        obj.__parent__.parent.getName();
+        Mixjs.module({
+            include: function() {}
+        });
     }
     catch (e) {
         message = e.message;
     }
-    notStrictEqual(typeof message, "undefined", "parentと__parent__は併用できない");
+    same(message, "include method value must be mixjs module object.", "includeメソッドは関数による定義が不可");
+    
+    message = null;
+    try {
+        var ChinaPad = {
+            mix: function() {},
+            has: function() {}
+        };
+        Mixjs.module({
+            include: ChinaPad
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    
+    same(message, "include method value must be mixjs module object.", 
+            "includeメソッドはmixjsオブジェクト以外定義が不可");
 });
 
-test("メソッドの親参照時に外部用親参照プロパティ経由の場合、子モジュール内のメソッドが呼ばれること", function() {
-    var obj = Psp.mix(PspGo, PsVita);
-    same(obj.parent.getName(), "PSP", "外部用親参照プロパティ経由時は子モジュールのメソッドが呼ばれる");
-    same(obj.parent.myName(), "PSPGO", "外部用親参照プロパティ経由でもレシーバがthisでない場合はそのまま親メソッドが返す値を取得する");
-    same(obj.parent.parent.getName(), "PSP", "外部用親参照プロパティ経由時は子モジュールのメソッドが呼ばれる");
-    same(obj.parent.parent.myName(), "PSVITA", "外部用親参照プロパティ経由でもレシーバがthisでない場合はそのまま親の親メソッドが返す値を取得する");
+test("includeメソッドに配列としてMixjs#moduleで作成したオブジェクト以外が１つでも指定された場合、例外が発生すること", function() {
+    var message;
+    try {
+        Mixjs.module({
+            include: [Iphone, function() {}]
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "include method value must be mixjs module object.", "includeメソッドは関数による定義が不可");
+    
+    message = null;
+    try {
+        var ChinaPad = {
+            mix: function() {},
+            has: function() {}
+        };
+        Mixjs.module({
+            include: [Iphone, ChinaPad]
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    
+    same(message, "include method value must be mixjs module object.", 
+            "includeメソッドはmixjsオブジェクト以外定義が不可");
 });
 
-test("メソッドの親参照時に内部用親参照プロパティ経由の場合、親モジュール内のメソッドが呼ばれること", function() {
-    var obj = Psp.mix(PspGo, PsVita);
-    same(obj.__parent__.getName(), "PSPGO", "内部用親参照プロパティ経由時は親モジュールのメソッドが呼ばれる");
-    same(obj.__parent__.myName(), "PSPGO", "内部用親参照プロパティ経由でもレシーバに関係なく親モジュールのメソッドが呼ばれる");
-    same(obj.__parent__.__parent__.getName(), "PSVITA", "内部用親参照プロパティ経由時は子モジュールのメソッドが呼ばれる");
-    same(obj.__parent__.__parent__.myName(), "PSVITA", "内部用親参照プロパティ経由でもレシーバに関係なく親の親メソッドが返す値を取得する");
+test("baseプロパティを使用するとレシーバが子モジュールになること", function() {
+    var obj = PsVita.mix(PspGo, Psp);
+    same(obj.parent.parent.getName(), "PSP", "baseプロパティを使わなければ呼ばれるのはPsp#getName");
+    same(obj.parent.parent.getBaseName(), "PSVITA", "baseプロパティを使えば呼ばれるのはPsVita#getName");
+});
+
+test("baseプロパティを使用してレシーバを子モジュールに戻したとき、プロトタイプチェーンで子モジュールの親を呼べること", function() {
+    var obj = PsVita.mix(PspGo, Psp);
+    same(obj.parent.parent.getChainName(), "PSVITA", "Psp#getChainNameからPspGo#getChainNameを呼び出すがレシーバはPsVita");
+});
+
+test("スコープを指定してモジュールを定義できること", function() {
+    var scope = {};
+    Mixjs.module("Test1", scope, {name: "test1"});
+    Mixjs.module("Test2", document, {name: "test2"});
+    same(scope.Test1.name, "test1", "オブジェクトに対してモジュールをセットすることができる");
+    same(document.Test2.name, "test2", "documentオブジェクトに対してモジュールをセットすることができる");
+});
+
+test("モジュール定義で引数を1つ指定するとき、戻り値があること", function() {
+    var obj = Mixjs.module({});
+    notDeepEqual(obj, undefined, "戻り値はundefinedではない");
+});
+
+test("モジュール定義で引数を2つ指定するとき、戻り値がないこと", function() {
+    var obj = Mixjs.module("Test", {});
+    same(obj, undefined, "戻り値はundefined");
+});
+
+test("モジュール定義で引数を2つ指定するとき、第一引数(name)が文字列以外の場合、エラーが発生すること", function() {
+    var message;
+    try {
+        Mixjs.module(100, {name: "test1"});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of name must be string.", "第一引数に数値の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module(function() {}, {name: "test1"});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of name must be string.", "第一引数に関数の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module({}, {name: "test1"});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of name must be string.", "第一引数にオブジェクトの指定は不可");
+});
+
+test("モジュール定義で引数を2つ指定するとき、第二引数(base)がオブジェクト以外の場合、エラーが発生すること", function() {
+    var message;
+    try {
+        Mixjs.module("Test", "string");
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of base must be object.", "第二引数に文字列の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module("Test", 111);
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of base must be object.", "第二引数に数値の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module("Test", function() {});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of base must be object.", "第二引数に関数の指定は不可");
+});
+
+test("モジュール定義で引数を3つ指定するとき、戻り値がないこと", function() {
+    var obj = Mixjs.module("Test", {}, {});
+    same(obj, undefined, "戻り値はundefined");
+});
+
+test("モジュール定義で引数を3つ指定するとき、第一引数(name)が文字列以外の場合、エラーが発生すること", function() {
+    var message;
+    try {
+        Mixjs.module(100, {}, {name: "test1"});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of name must be string.", "第一引数に数値の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module(function() {}, {}, {name: "test1"});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of name must be string.", "第一引数に関数の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module({}, {}, {name: "test1"});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of name must be string.", "第一引数にオブジェクトの指定は不可");
+});
+
+test("モジュール定義で引数を3つ指定するとき、第二引数(scope)がオブジェクト以外の場合、エラーが発生すること", function() {
+    var message;
+    try {
+        Mixjs.module("Test", "string", {});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of scope must be object.", "第二引数に文字列の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module("Test", 111, {});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of scope must be object.", "第三引数に数値の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module("Test", function() {}, {});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of scope must be object.", "第三引数に関数の指定は不可");
+});
+
+test("モジュール定義で引数を3つ指定するとき、第三引数(base)がオブジェクト以外の場合、エラーが発生すること", function() {
+    var message,
+        scope = {};
+    try {
+        Mixjs.module("Test", scope, "string");
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of base must be object.", "第三引数に文字列の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module("Test", scope, 111);
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of base must be object.", "第三引数に数値の指定は不可");
+    
+    message = null;
+    try {
+        Mixjs.module("Test", scope, function() {});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of base must be object.", "第三引数に関数の指定は不可");
 });

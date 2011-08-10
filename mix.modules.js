@@ -11,7 +11,7 @@
 /**
  * Utilsモジュール
  */
-var Utils = Module.create({
+Mixjs.module("Utils", {
     /**
      * jQueryバージョン
      */
@@ -112,7 +112,7 @@ var Utils = Module.create({
 /**
  * Cookieモジュール
  */
-var Cookie = Module.create({
+Mixjs.module("Cookie", {
     /**
      * Cookieを設定、取得する
      * @param key Cookieのキー
@@ -225,7 +225,7 @@ var Cookie = Module.create({
 /**
  * Designモジュール
  */
-var Design = Module.create({
+Mixjs.module("Design", {
     /**
      * デフォルトフィルタ名
      */
@@ -389,7 +389,7 @@ var Design = Module.create({
 /**
  * Cacheモジュール
  */
-var Cache = Module.create({
+Mixjs.module("Cache", {
     stack_: {},
 
     /**
@@ -487,7 +487,7 @@ var Cache = Module.create({
 /**
  * HTTP関連モジュール
  */
-var Http = Module.create({
+Mixjs.module("Http", {
     /**
      * 非同期通信を実行する
      * @param options.url              送信先URL

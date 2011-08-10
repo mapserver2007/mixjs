@@ -1,7 +1,8 @@
 module("mix.design.js");
 
 asyncTest("指定した領域にフィルタがかかること", function() {
-    var obj = Module.create({}).mix(Design, Utils);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Design, Utils);
     var elem = document.getElementById("qunit-header");
     obj.showFilter({
         target: elem
@@ -15,7 +16,8 @@ asyncTest("指定した領域にフィルタがかかること", function() {
 });
 
 asyncTest("領域を指定しない場合は画面全体にフィルタがかかること", function() {
-    var obj = Module.create({}).mix(Design, Utils);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Design, Utils);
     obj.showFilter();
     setTimeout(function() {
         start();
@@ -26,7 +28,8 @@ asyncTest("領域を指定しない場合は画面全体にフィルタがかか
 });
 
 asyncTest("指定した領域がjQueryオブジェクトの場合、正常にフィルタがかかること", function() {
-    var obj = Module.create({}).mix(Design, Utils);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Design, Utils);
     obj.loadJQuery();
     setTimeout(function() {
         var elem = $("#qunit-header");
@@ -43,7 +46,8 @@ asyncTest("指定した領域がjQueryオブジェクトの場合、正常にフ
 });
 
 asyncTest("フィルタに文字列が表示できること", function() {
-    var obj = Module.create({}).mix(Design, Utils);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Design, Utils);
     var elem = document.getElementById("qunit-header");
     var text = "Desing Module Test";
     obj.showFilter({
@@ -59,7 +63,8 @@ asyncTest("フィルタに文字列が表示できること", function() {
 });
 
 asyncTest("フィルタに画像が表示できること", function() {
-    var obj = Module.create({}).mix(Design, Utils);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Design, Utils);
     var elem = document.getElementById("qunit-header");
     var img = "http://static.jquery.com/files/rocker/images/logo_jquery_215x53.gif";
     obj.showFilter({
@@ -75,7 +80,8 @@ asyncTest("フィルタに画像が表示できること", function() {
 });
 
 asyncTest("フィルタに文字列と画像が表示できること", function() {
-    var obj = Module.create({}).mix(Design, Utils);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Design, Utils);
     var elem = document.getElementById("qunit-header");
     var text = "Desing Module Test";
     var img = "http://static.jquery.com/files/rocker/images/logo_jquery_215x53.gif";
@@ -96,7 +102,8 @@ asyncTest("フィルタに文字列と画像が表示できること", function(
 });
 
 asyncTest("フィルタ名を任意の名前に変更できること", function() {
-    var obj = Module.create({}).mix(Design, Utils);
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Design, Utils);
     var filterName = "myFilter";
     obj.showFilter({}, filterName);
     setTimeout(function() {
