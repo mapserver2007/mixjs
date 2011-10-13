@@ -2,7 +2,7 @@ module("mix.http.js");
 
 asyncTest("JSONPが実行出来ること", function() {
     Mixjs.module("Test", {});
-    var obj = Test.mix(Http, Utils, Cache);
+    var obj = Test.mix(Http);
     obj.xhr({
         url: "http://tepco-usage-api.appspot.com/latest.json",
         params: {},
@@ -24,7 +24,7 @@ asyncTest("JSONPが実行出来ること", function() {
 
 asyncTest("JSONPでエラーが起きても処理が止まらないこと", function() {
     Mixjs.module("Test", {});
-    var obj = Test.mix(Http, Utils, Cache);
+    var obj = Test.mix(Http);
     obj.xhr({
         url: "http://localhost:8080/latest.json",
         params: {},
@@ -46,7 +46,7 @@ asyncTest("JSONPでエラーが起きても処理が止まらないこと", func
 
 asyncTest("タイムアウトを設定してJSONPが正常に実行できたとき、タイムアウト処理が実行されないこと", function() {
     Mixjs.module("Test", {});
-    var obj = Test.mix(Http, Utils, Cache);
+    var obj = Test.mix(Http);
     obj.xhr({
         url: "http://tepco-usage-api.appspot.com/latest.json",
         params: {},
@@ -68,7 +68,7 @@ asyncTest("タイムアウトを設定してJSONPが正常に実行できたと�
 
 asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき、エラー処理が実行されること", function() {
     Mixjs.module("Test", {});
-    var obj = Test.mix(Http, Utils, Cache);
+    var obj = Test.mix(Http);
     obj.xhr({
         url: "http://localhost:8080/latest.json",
         params: {},
@@ -90,7 +90,7 @@ asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき�
 
 asyncTest("キャッシュを有効にしたとき、データがキャッシュされること", function() {
     Mixjs.module("Test", {});
-    var obj = Test.mix(Http, Utils, Cache);
+    var obj = Test.mix(Http, Cache);
     var url = "http://tepco-usage-api.appspot.com/latest.json";
     obj.xhr({
         url: url,

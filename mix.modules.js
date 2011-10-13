@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.14 (2011/07/03)
+ * version: 0.1.15 (2011/10/13)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -15,7 +15,7 @@ Mixjs.module("Utils", {
     /**
      * jQueryバージョン
      */
-    latestJQueryVersion_: "1.6.2",
+    latestJQueryVersion_: "1.6.4",
 
     /**
      * ホスティングjQueryを開く
