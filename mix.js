@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.2.0 (2011/08/10)
+ * version: 0.2.1 (2011/10/29)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -10,11 +10,11 @@
 
 var Mixjs = {};
 Mixjs.module = function() {
-    var MODULE_DEFINE                     = arguments.length === 1,
-        MODULE_DEFINE_WITH_NAME           = arguments.length === 2,
+    var MODULE_DEFINE_WITH_NAME           = arguments.length === 2,
         MODULE_DEFINE_WITH_NAME_AND_SCOPE = arguments.length === 3;
+    var MAX_CYCLIC_COUNT = 100;
     var isIE = [,]!=0,
-        prohibits = ["mix", "parent", "has", "base"],
+        prohibits = ["mix", "parent", "has", "base", "__moduleName__"],
         modules = [];
     var clone = function(o) {
         var c = {};
@@ -30,7 +30,9 @@ Mixjs.module = function() {
     var include = function(obj, incObjArray) {
         for (var i = 0, len = incObjArray.length; i < len; i++) {
             var incObj = incObjArray[i];
-            obj = obj.mix(incObj);
+            if (!obj.has(incObj)) {
+                obj = obj.mix(incObj);
+            }
         }
         return obj;
     };
@@ -46,11 +48,12 @@ Mixjs.module = function() {
 
     var isMixjsModule = function(obj) {
         if (typeof obj === "undefined") return false;
-        var mixObj = Mixjs.module({});
-        return obj.mix.toString() === mixObj.mix.toString() &&
-               obj.has.toString() === mixObj.has.toString();
+        var scope = {};
+        Mixjs.module("Dummy", scope, {});
+        return obj.mix.toString() === scope.Dummy.mix.toString() &&
+               obj.has.toString() === scope.Dummy.has.toString();
     };
-    
+
     var isIncludeError = function(obj) {
         return typeof obj !== "object" || (typeof obj === "object" && !isMixjsModule(obj));
     };
@@ -60,13 +63,62 @@ Mixjs.module = function() {
             return f.apply(self, arguments);
         }
     };
+    
+    var isCyclic = function(obj) {
+        var ca = {}, parent = clone(obj);
+        ca[parent.__moduleName__] = parent.__moduleName__;
+        
+        var cyclicCount = ca[parent.__moduleName__].length,
+            cyclicDepth = 0,
+            cyclicFlg = false;
+        
+        while (parent.hasOwnProperty("parent")) {
+            // 循環チェック用配列を更新
+            ca[parent.__moduleName__] = parent.__moduleName__;
+            cyclicDepth++;
+            
+            // 同じモジュールがcyclicCount回連続で検出されなければ循環可能性が消滅するのでフラグを消す
+            if (ca[parent.__moduleName__].length > cyclicCount) {
+                cyclicCount = ca[parent.__moduleName__].length;
+                cyclicFlg = false;
+            }
+             
+            // 循環が起きている可能性がある場合
+            if (cyclicFlg) {
+                // 同じモジュールが連続してcyclicCount回検出されたら循環
+                if (cyclicDepth === cyclicCount) {
+                    return true;
+                }
+            }
+             
+            // 同じモジュールが検知された場合は循環が発生した可能性がある
+            // この時点では循環になっているかは不明なのでフラグを立てるだけ
+            if (cyclicCount < cyclicDepth) {
+                // 同じモジュールが検出されたので深さは1
+                cyclicDepth = 1;
+                cyclicFlg = true;
+            }
+            
+            parent = parent.parent;
+        }
+        
+        return false;
+    };
+
+    var uniq = function(ary){
+        var o = {}, a = [];
+        for (var i = 0; i < ary.length; i++) {
+            o[ary[i].__moduleName__] = ary[i];
+        }
+        for (var key in o) {
+            a.push(o[key]);
+        }
+        return a;
+    };
 
     var name, scope, base;
     try {
-        if (MODULE_DEFINE) {
-            base = arguments[0];
-        }
-        else if (MODULE_DEFINE_WITH_NAME) {
+        if (MODULE_DEFINE_WITH_NAME) {
             if (typeof arguments[0] !== "string") {
                 throw "type of name must be string.";
             }
@@ -89,21 +141,24 @@ Mixjs.module = function() {
             name = arguments[0];
             base = arguments[2];
         }
+        else {
+            throw "type of name must be string.";
+        }
     }
     catch (e) {
         throw new Error("Invalid argument: " + e);
     }
-    
+
     for (var prop in base) {
-        var i, len;
+        var i, j, len;
         for (i = 0, len = prohibits.length; i < len; i++)  {
             if (inArray(prop, prohibits) !== -1) {
-                throw new Error(prop + " method can't be defined.");
+                throw new Error("'" + prop + "' can't be defined.");
             }
         }
         if (prop === "include") {
-            if (base.include instanceof Array) {
-                for (i = 0, len = base.include.length; i < len; i++) {
+            if (base[prop] instanceof Array) {
+                for (i = 0, len = base[prop].length; i < len; i++) {
                     if (isIncludeError(base.include[i])) {
                         throw new Error(prop + " method value must be mixjs module object.");
                     }
@@ -120,11 +175,18 @@ Mixjs.module = function() {
         }
     }
 
+    base.__moduleName__ = arguments[0];
+
     base.has = function(parent) {
         var isMixed = true,
             child = clone(this);
 
         for (var pprop in parent) {
+            // 組み込みプロパティは検査対象としない
+            if (inArray(pprop, prohibits) !== -1) {
+                continue;
+            }
+
             isMixed *= (function() {
                 for (var cprop in child) {
                     for (var c = clone(child);;) {
@@ -157,64 +219,44 @@ Mixjs.module = function() {
 
     if (isIE) {
         base.mix = function() {
-            // 親が継承済みの場合を考慮するため親の階層を辿る
-            var parents = [], parent, child, i;
-            for (i = 0, len = arguments.length; i < len; i++) {
-                for (parent = clone(arguments[i]);;) {
-                    parents.push(parent);
-                    if (parent.hasOwnProperty("parent")) {
-                        parent = parent.parent;
+            var ancestors = [], parents = [], child = clone(this);
+            parents.push.apply(parents, arguments);
+            parents = uniq(parents);
+
+            ancestors.push(child);
+            for (var i = 0, len = parents.length; i < len; i++) {
+                var parent = clone(parents[i]);
+                if (!child.has(parent)) {
+                    ancestors.push(parent);
+                }
+            }
+
+            for (var j = ancestors.length - 1; j > 0; j--) {
+                var parentNo = j,
+                    childNo = parentNo - 1;
+
+                var c = ancestors[childNo];
+                var p = ancestors[parentNo];
+
+                // 自分の祖先が持っているメソッドを子供に受け継がせる
+                for (;;) {
+                    for (var prop in p) if (!c.hasOwnProperty(prop)) {
+                        if (inArray(prop, prohibits) === -1) {
+                            c[prop] = p[prop];
+                        }
                     }
-                    else {
+                    if (!c.hasOwnProperty("parent")) {
                         break;
                     }
-                }
-            }
-            // 子が継承済みの場合を考慮するため子の階層を辿る
-            var children = [];
-            for (var c = clone(this);;) {
-                children.push(c);
-                if (c.hasOwnProperty("parent")) {
                     c = c.parent;
                 }
-                else {
-                    break;
-                }
-            }
 
-            var ancestors = children.concat(parents);
-            var isSameModule = function(m1, m2) {
-                // オブジェクトには親(parent)が残っているとhasメソッドで親を参照し続け
-                // 異なるオブジェクトでも同じと判定することがある。単なるオブジェクト同士を比較
-                // する場合はparentで参照しないようにする必要がある。
-                delete m1.parent;
-                delete m2.parent;
-                return m1.has(m2);
+                c.parent = p;
+                c.base = p.base = ancestors[0];
             }
             
-            for (i = 0; i < ancestors.length; i++) {
-                var module1 = ancestors[i];
-                for (var j = 0; j < ancestors.length; j++) {
-                    var module2 = ancestors[j];
-                    if (i !== j && isSameModule(module1, module2)) {
-                        throw new Error("mix-in the same module.");
-                    }
-                }
-            }
-
-            // 自分の祖先が持っているメソッドを子供に受け継がせる
-            for (i = ancestors.length - 1; i > 0; i--) {
-                var parentNo = i,
-                    childNo = parentNo - 1;
-                
-                child = ancestors[childNo];
-                parent = ancestors[parentNo];
-
-                child.parent = parent;
-                child.base = parent.base = ancestors[0];
-                for (var prop in parent) if (!child.hasOwnProperty(prop)) {
-                    child[prop] = parent[prop];
-                }
+            if (isCyclic(ancestors[0])) {
+                throw new Error("The module cyclic reference error.");
             }
 
             return ancestors[0];
@@ -222,17 +264,16 @@ Mixjs.module = function() {
     }
     else {
         base.mix = function() {
-            var parents = arguments,
-            child = clone(this);
+            var c, cc, p;
+            var parents = [], child = clone(this);
+            parents.push.apply(parents, arguments);
+            parents = uniq(parents);
 
-            var c, cc;
             for (var i = 0, len = parents.length; i < len; i++) {
                 var parent = clone(parents[i]);
                     depth = 0;
 
-                if (child.has(parent)) {
-                    throw new Error("mix-in the same module.");
-                }
+                if (child.has(parent)) continue;  
 
                 for (c = child; c.__proto__ !== null;) {
                     c = c.__proto__;
@@ -244,23 +285,32 @@ Mixjs.module = function() {
                     propList[d] = "__proto__";
                 }
 
-                eval(propList.join(".") + " = parent");
+                try {
+                    eval(propList.join(".") + " = parent");
+                }
+                catch (e) {
+                    // 循環参照エラー
+                    if (e.message === "Cyclic __proto__ value") {
+                        throw new Error("The module cyclic reference error.");
+                    }
+                    else {
+                        throw e;
+                    }
+                }
             }
 
-            for (c = child; c.__proto__ !== null;) {
+            for (c = child; c.__proto__.hasOwnProperty("mix");) {
                 c.base = child;
                 c = c.parent = c.__proto__;
             }
+            c.base = child;
 
             return child;
         };
     }
-    
+
     var isInclude = modules.length !== 0;
-    if (MODULE_DEFINE) {
-        return isInclude ? include(base, modules) : base;
-    }
-    else if (MODULE_DEFINE_WITH_NAME) {
+    if (MODULE_DEFINE_WITH_NAME) {
         window[name] = isInclude ? include(base, modules) : base;
     }
     else if (MODULE_DEFINE_WITH_NAME_AND_SCOPE) {

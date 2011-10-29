@@ -122,13 +122,7 @@ test("Mixjs.module()で生成したオブジェクト自身はMix-inの影響を
     }, "多重継承の影響をうけていなければで未継承オブジェクトのメソッドは取得できない");
 });
 
-test("Mixjs.module()で生成したオブジェクト自身は多重継承の影響を受けないこと", function() {
-    var obj = Iphone.mix(Feature, Telephone);
-    same(obj.getType(), "old type", "多重継承したオブジェクトは継承したメソッドを取得できる");
-    raises(function() {
-        Iphone.getType();
-    }, "多重継承の影響をうけていなければで未継承オブジェクトのメソッドは取得できない");
-});
+
 
 test("Mix-inしたオブジェクトの親からその親のメソッドを参照できること", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
@@ -190,29 +184,18 @@ test("多重継承済みオブジェクトにMix-inしていないモジュー�
     same(obj.has(Ipad), false, "Mix-inしていないモジュールは含まれないこと");
 });
 
-test("同じモジュールをMix-inした場合は例外が発生すること", function() {
-    var message;
-    try {
-        Iphone.mix(Feature).mix(Iphone);
-    }
-    catch (e) {
-        message = e.message;
-    }
-    same(message, "mix-in the same module.", "同じモジュールをMix-inした場合は例外が発生する");
+test("同じモジュールはMix-inされないこと", function() {
+    var obj = Iphone.mix(Feature).mix(Iphone);
+    same(obj.parent.hasOwnProperty("parent"), false, "親の親にモジュールへの参照はつかない");
 });
 
-test("includeを使ってインクルードしたモジュールと同じモジュールをMix-inした場合は例外が発生すること", function() {
-    var message;
-    try {
-        var obj = Mixjs.module({
-            include: Iphone
-        });
-        obj.mix(Iphone);
-    }
-    catch (e) {
-        message = e.message;
-    }
-    same(message, "mix-in the same module.", "includeを使って同じモジュールをMix-inした場合は例外が発生する");
+test("includeを使ってインクルードする場合、同じモジュールはMix-inされないこと", function() {
+    var scope = {};
+    Mixjs.module("Test", scope, {
+        include: Iphone
+    });
+    obj = scope.Test.mix(Iphone);
+    same(obj.parent.hasOwnProperty("parent"), false, "親の親にモジュールへの参照はつかない");
 });
 
 test("モジュールにmixメソッドを定義した場合は例外が発生すること", function() {
@@ -225,7 +208,7 @@ test("モジュールにmixメソッドを定義した場合は例外が発生�
     catch (e) {
         message = e.message;
     }
-    same(message, "mix method can't be defined.", "mixメソッドは定義不可");
+    same(message, "'mix' can't be defined.", "mixメソッドは定義不可");
 });
 
 test("モジュールにparentメソッドを定義した場合は例外が発生すること", function() {
@@ -238,7 +221,7 @@ test("モジュールにparentメソッドを定義した場合は例外が発�
     catch (e) {
         message = e.message;
     }
-    same(message, "parent method can't be defined.", "parentメソッドは定義不可");
+    same(message, "'parent' can't be defined.", "parentメソッドは定義不可");
 });
 
 test("モジュールにhasメソッドを定義した場合は例外が発生すること", function() {
@@ -251,7 +234,7 @@ test("モジュールにhasメソッドを定義した場合は例外が発生�
     catch (e) {
         message = e.message;
     }
-    same(message, "has method can't be defined.", "hasメソッドは定義不可");
+    same(message, "'has' can't be defined.", "hasメソッドは定義不可");
 });
 
 test("モジュールにbaseメソッドを定義した場合は例外が発生すること", function() {
@@ -264,28 +247,44 @@ test("モジュールにbaseメソッドを定義した場合は例外が発生�
     catch (e) {
         message = e.message;
     }
-    same(message, "base method can't be defined.", "baseメソッドは定義不可");
+    same(message, "'base' can't be defined.", "baseメソッドは定義不可");
+});
+
+test("モジュールに__moduleName__プロパティを定義した場合は例外が発生すること", function() {
+    var message;
+    try {
+        Mixjs.module("ChinaPad", {
+            __moduleName__: ""
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "'__moduleName__' can't be defined.", "__moduleName__プロパティは定義不可");
 });
 
 test("includeメソッドにMixjs#moduleで作成したオブジェクトが指定された場合、定義したモジュールにMix-inされること", function() {
-    var obj = Mixjs.module({
+    var scope = {};
+    Mixjs.module("Test", scope, {
         include: Iphone
     });
-    same(obj.has(Iphone), true, "includeでMix-inが実行可能");
+    same(scope.Test.has(Iphone), true, "includeでMix-inが実行可能");
 });
 
 test("includeメソッドにMixjs#moduleで作成したオブジェクトが配列で指定された場合、定義したモジュールに順番にMix-inされること", function() {
-    var obj = Mixjs.module({
+    var scope = {};
+    Mixjs.module("Test", scope, {
         include: [Iphone, Feature]
     });
-    same(obj.parent.getPhoneName(), "iphone", "includeでMix-inが実行可能で、親は1番目のモジュールになる");
-    same(obj.parent.parent.getPhoneName(), "garake-", "includeでMix-inが実行可能で、親は2番目のモジュールになる");
+    same(scope.Test.parent.getPhoneName(), "iphone", "includeでMix-inが実行可能で、親は1番目のモジュールになる");
+    same(scope.Test.parent.parent.getPhoneName(), "garake-", "includeでMix-inが実行可能で、親は2番目のモジュールになる");
 });
 
 test("includeメソッドにMixjs#moduleで作成したオブジェクト以外が指定された場合、例外が発生すること", function() {
     var message;
+    var scope = {};
     try {
-        Mixjs.module({
+        Mixjs.module("Test", scope, {
             include: function() {}
         });
     }
@@ -300,7 +299,7 @@ test("includeメソッドにMixjs#moduleで作成したオブジェクト以外�
             mix: function() {},
             has: function() {}
         };
-        Mixjs.module({
+        Mixjs.module("Test", scope, {
             include: ChinaPad
         });
     }
@@ -314,8 +313,9 @@ test("includeメソッドにMixjs#moduleで作成したオブジェクト以外�
 
 test("includeメソッドに配列としてMixjs#moduleで作成したオブジェクト以外が１つでも指定された場合、例外が発生すること", function() {
     var message;
+    var scope = {};
     try {
-        Mixjs.module({
+        Mixjs.module("Test", scope, {
             include: [Iphone, function() {}]
         });
     }
@@ -330,7 +330,7 @@ test("includeメソッドに配列としてMixjs#moduleで作成したオブジ�
             mix: function() {},
             has: function() {}
         };
-        Mixjs.module({
+        Mixjs.module("Test", scope, {
             include: [Iphone, ChinaPad]
         });
     }
@@ -361,9 +361,15 @@ test("スコープを指定してモジュールを定義できること", funct
     same(document.Test2.name, "test2", "documentオブジェクトに対してモジュールをセットすることができる");
 });
 
-test("モジュール定義で引数を1つ指定するとき、戻り値があること", function() {
-    var obj = Mixjs.module({});
-    notDeepEqual(obj, undefined, "戻り値はundefinedではない");
+test("モジュール定義で引数を1つしか指定しない場合、例外が発生すること", function() {
+    var message;
+    try {
+        var obj = Mixjs.module({});
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "Invalid argument: type of name must be string.", "第一引数にはモジュール名を文字列で指定しなければならない");
 });
 
 test("モジュール定義で引数を2つ指定するとき、戻り値がないこと", function() {
@@ -520,4 +526,15 @@ test("モジュール定義で引数を3つ指定するとき、第三引数(bas
         message = e.message;
     }
     same(message, "Invalid argument: type of base must be object.", "第三引数に関数の指定は不可");
+});
+
+test("Mix-inでモジュールの循環参照が発生した場合、例外が発生すること", function() {
+    var message;
+    try {
+        Windows95.mix(WindowsXP).mix(Windows98.mix(WindowsXP))
+    }
+    catch (e) {
+        message = e.message;
+    }
+    same(message, "The module cyclic reference error.", "循環参照エラーが起きる");
 });

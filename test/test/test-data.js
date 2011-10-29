@@ -67,3 +67,23 @@ Mixjs.module("PsVita", {
         return this.myName();
     }
 });
+
+Mixjs.module("Windows95", {
+    name: function () {
+        return "windows95";
+    }
+});
+
+Mixjs.module("Windows98", {
+    include: Windows95,
+    name: function () {
+        return "windows98";
+    }
+});
+
+Mixjs.module("WindowsXP", {
+    include: Windows98,
+    name: function () {
+        return "windowsxp";
+    }
+});
