@@ -12,7 +12,6 @@ var Mixjs = {};
 Mixjs.module = function() {
     var MODULE_DEFINE_WITH_NAME           = arguments.length === 2,
         MODULE_DEFINE_WITH_NAME_AND_SCOPE = arguments.length === 3;
-    var MAX_CYCLIC_COUNT = 100;
     var isIE = [,]!=0,
         prohibits = ["mix", "parent", "has", "base", "__moduleName__"],
         modules = [];
