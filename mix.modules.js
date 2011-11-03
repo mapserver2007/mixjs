@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.15 (2011/10/13)
+ * version: 0.1.16 (2011/11/03)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -19,19 +19,57 @@ Mixjs.module("Utils", {
 
     /**
      * ホスティングjQueryを開く
+     * @param callback コールバック関数
      * @param optVersion バージョン
      */
-    loadJQuery: function(optVersion) {
+    loadJQuery: function(callback, optVersion) {
         var url = "https://ajax.googleapis.com/ajax/libs/jquery/"
-            + (this.latestJQueryVersion_ || optVersion)
+            + (optVersion || this.latestJQueryVersion_)
             + "/jquery.min.js";
+        this.loadScript(url, callback);
+    },
 
+    /**
+     * scriptファイルを読み込む
+     * @param url scriptファイルパスまたはURL
+     * @param callback コールバック関数
+     */
+    loadScript: function(url, callback) {
         if (!this.isLoadedScript(url)) {
             var script = document.createElement("script"),
             body = document.getElementsByTagName("html")[0];
             script.setAttribute("src", url);
             script.setAttribute("charset", "UTF-8");
+            if (typeof callback === "function") {
+                // for IE
+                if (script.readyState) {
+                    script.onreadystatechange = function() {
+                        if (this.readyState == 'loaded' || this.readyState == 'complete') {
+                            callback();
+                        }
+                    }
+                }
+                // for modern browsers
+                else {
+                    script.onload = callback;
+                }
+            }
             body.appendChild(script);
+        }
+    },
+
+    /**
+     * jQueryが無い場合は読み込んでから処理を実行する
+     * 読み込み済みの場合はそのまま関数を実行する
+     * @param function 処理する関数
+     */
+    onLoadJQuery: function(callback) {
+        // jQueryが読み込まれていないときはホスティング先から読み込む
+        if (typeof jQuery === "undefined") {
+            this.loadJQuery(callback);
+        }
+        else {
+            callback();
         }
     },
 
@@ -131,7 +169,7 @@ Mixjs.module("Cookie", {
             return this.getCookie(key);
         }
     },
-    
+
     /**
      * Cookieを設定する
      * @param key Cookieのキー
@@ -144,10 +182,10 @@ Mixjs.module("Cookie", {
             value = "";
             options.expires = {};
         }
-        
+
         var cookie = [];
         cookie.push(key + "=" + encodeURIComponent(value));
-        
+
         var expireTime = function(expire) {
             var time = 0;
             for (var term in expire) {
@@ -177,7 +215,7 @@ Mixjs.module("Cookie", {
             var time = ~~(new Date() / 1000);
             return time + expireTime(expire);
         })(options.expires);
-        
+
         var unixTimeToDate = function(ut, optTimeZone) {
             var tz = optTimeZone || 0;
             var date = new Date(ut * 1000);
@@ -197,13 +235,13 @@ Mixjs.module("Cookie", {
             cookie.push("expires=" + date.toUTCString());
             cookie.push("max-age=" + expireTime(options.expires));
         }
-        
+
         cookie.push(options.path ? "path=" + options.path : "");
         cookie.push(options.domain ? "domain=" + options.domain : "");
         cookie.push(options.secure ? "secure" : "");
         document.cookie = cookie.join(";");
     },
-    
+
     /**
      * Cookieを取得する
      * @param key Cookieのキー
@@ -295,12 +333,12 @@ Mixjs.module("Design", {
                     var img = document.createElement("img"),
                         left = (elem.offsetWidth - filterImg.width) / 2,
                         top = (elem.offsetHeight - filterImg.height) / 2;
-    
+
                     img.setAttribute("src", path);
                     img.style.position = "relative";
                     img.style.left = left + "px";
                     img.style.top  = top + "px";
-    
+
                     return img;
                 }
                 else {
@@ -459,7 +497,7 @@ Mixjs.module("Cache", {
             // keyが先頭で一致した場合、keyとcontentを取り出す
             if (keyWithExpire.search(key) === 0) {
                 // 期限付きの場合
-                if (keyWithExpire.match(/^(.*?)-(\d{13})$/)) {
+                if (/^(.*?)-(\d{13})$/.test(keyWithExpire)) {
                     key = RegExp.$1;
                     expireTime = RegExp.$2;
                     // 期限が切れていないかどうか
@@ -485,9 +523,12 @@ Mixjs.module("Cache", {
 });
 
 /**
- * HTTP関連モジュール
+ * HTTPモジュール
  */
 Mixjs.module("Http", {
+    /** 依存ライブラリをインクルード */
+    include: Utils,
+
     /**
      * 非同期通信を実行する
      * @param options.url              送信先URL
@@ -514,52 +555,29 @@ Mixjs.module("Http", {
             this.options = options;
             this.start();
 
-            // jQueryが読み込まれていないときはホスティング先から読み込む
-            if (typeof jQuery === "undefined") {
-                if (typeof Utils !== "undefined") {
-                    if (!self.has(Utils)) {
-                        self.mix(Utils);
+            this.onLoadJQuery(function() {
+                // クロスドメイン通信
+                if (args.xdomain === true) {
+                    if (!self.has(XdomainHttp)) {
+                        self.mix(XdomainHttp).parent.xhr(options);
                     }
-                    this.loadJQuery();
                 }
                 else {
-                    throw new Error("require jQuery.");
-                }
-            }
-
-            // start()処理がonloadがらみの場合、非同期処理になるため
-            // start()より早く$.ajax()が実行されるためsetTimeoutでタイミングをあわせる
-            setTimeout(function() {
-                // 動的にjQueryを読み込んだときは遅延ロードする
-                (function() {
-                    var f = arguments.callee;
-                    try {
-                        $.ajax({
-                            type: args.type || "post",
-                            dataType: args.dataType || "json",
-                            data: params,
-                            cache: args.cache || true,
-                            url: url,
-                            success: function(data, dataType) {
-                                self.success(successCallback, data, args.args);
-                            },
-                            error: function(XMLHttpRequest, textStatus, errorThrown) {
-                                self.error(errorCallback, textStatus, args);
-                            }
-                        });
-                    }
-                    catch(e) {
-                        if (e.message === "$ is not defined") {
-                            setTimeout(function() {
-                                f();
-                            }, 100);
+                    $.ajax({
+                        type: args.type || "post",
+                        dataType: args.dataType || "json",
+                        data: params,
+                        cache: args.cache || true,
+                        url: url,
+                        success: function(data, dataType) {
+                            self.success(successCallback, data, args.args);
+                        },
+                        error: function(XMLHttpRequest, textStatus, errorThrown) {
+                            self.error(errorCallback, textStatus, errorThrown);
                         }
-                        else {
-                            throw e;
-                        }
-                    }
-                })();
-            }, 10);
+                    });
+                }            
+            });
         }
     },
 
@@ -677,6 +695,133 @@ Mixjs.module("Http", {
                 + '<script type="text/javascript" src="' + requestURL + '"></script>');
             doc.close();
         }
+    },
+
+    /**
+     * 通信後のコールバックを実行する
+     * @param callback コールバック関数名
+     * @param response レスポンス
+     * @param args     コールバック関数に渡す引数
+     */
+    callbackCaller: function(callback, response, args) {
+        if (typeof callback === "function") {
+            callback.call(this, response, args);
+            this.end();
+        }
+        else {
+            this.end();
+            throw new Error(response.toString());
+        }
+    },
+
+    /**
+     * 指定した関数を実行する
+     * @param f    関数名
+     * @param args 関数に渡す引数
+     */
+    functionCaller: function(f, args) {
+        if (typeof f === "function") {
+            f.call(null, args);
+        }
+    },
+
+    /**
+     * 通信成功後のコールバックを実行する
+     * @param callback コールバック関数名
+     * @param response レスポンス
+     * @param args     コールバック関数に渡す引数
+     */
+    success: function(callback, response, args) {
+        this.callbackCaller(callback, response, args);
+    },
+
+    /**
+     * 通信失敗後のコールバックを実行する
+     * @param callback コールバック関数名
+     * @param response レスポンス
+     * @param args     コールバック関数に渡す引数
+     */
+    error: function(callback, response, args) {
+        this.callbackCaller(callback, response, args);
+    },
+
+    /**
+     * 通信開始前に処理を実行する
+     */
+    start: function() {
+        this.functionCaller(this.options.startFunc, this.options.args);
+    },
+
+    /**
+     * 通信終了後に処理を実行する
+     */
+    end: function() {
+        this.functionCaller(this.options.endFunc, this.options.args);
+    }
+});
+
+/**
+ * クロスドメインHTTPモジュール
+ */
+Mixjs.module("XdomainHttp", {
+    include: Http,
+    
+    /** xdomain-ajax用ライブラリ */
+    xdomainAjaxLib: "https://raw.github.com/jamespadolsey/jQuery-Plugins/master/cross-domain-ajax/jquery.xdomainajax.js",
+
+    /**
+     * jQueryが無い場合は読み込んでから処理を実行する
+     * @param function 処理する関数
+     */
+    xhr: function(options) {
+        // 継承済みの場合は基底を参照する
+        var self = this.base || this;
+        var url              = options.url,
+            params           = options.params || {},
+            args             = options.args || {},
+            successCallback  = options.successCallback,
+            errorCallback    = options.errorCallback;
+
+        self.options = options;
+        self.start();
+
+        self.onLoadJQuery(function() {
+            $.extend(options, {
+                type: "get",
+                dataType: "html",
+                success: function(data, dataType) {
+                    try {
+                        // dataTypeがjson場合はレスポンスを加工する
+                        if (/^json$/i.test(args.dataType)) {
+                            if (/<p>(.*)<\/p>/.test(data.responseText)) {
+                                var json = $.parseJSON(RegExp.$1);
+                                self.success(successCallback, json, args.args);
+                            }
+                            else {
+                                throw new Error("Parse json failure: " + url);
+                            }
+                        }
+                        // それ以外はHTMLとして処理
+                        else {
+                            if (/<body.*?>([\s\S]*)<\/body>/i.test(data.responseText)) {
+                                var html = $.trim(RegExp.$1.replace(/[\r\n\t]/g, ''));
+                                self.success(successCallback, html, args.args);
+                            }
+                            else {
+                                throw new Error("Parse html failure: " + url);
+                            }
+                        }
+                    }
+                    catch (e) {
+                        self.error(errorCallback, e.message);
+                    }
+                }
+            });
+
+            self.loadScript(self.xdomainAjaxLib, function() {
+                $.ajax(options);
+            });
+        });
     },
 
     /**
