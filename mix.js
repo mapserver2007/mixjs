@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.2.1 (2011/10/29)
+ * version: 0.2.2 (2011/11/10)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -221,8 +221,8 @@ Mixjs.module = function() {
             var ancestors = [], parents = [], child = clone(this);
             parents.push.apply(parents, arguments);
             parents = uniq(parents);
-
             ancestors.push(child);
+            
             for (var i = 0, len = parents.length; i < len; i++) {
                 var parent = clone(parents[i]);
                 if (!child.has(parent)) {
@@ -233,9 +233,8 @@ Mixjs.module = function() {
             for (var j = ancestors.length - 1; j > 0; j--) {
                 var parentNo = j,
                     childNo = parentNo - 1;
-
-                var c = ancestors[childNo];
-                var p = ancestors[parentNo];
+                var c = ancestors[childNo],
+                    p = ancestors[parentNo];
 
                 // 自分の祖先が持っているメソッドを子供に受け継がせる
                 for (;;) {
@@ -249,11 +248,11 @@ Mixjs.module = function() {
                     }
                     c = c.parent;
                 }
-
+                
                 c.parent = p;
                 c.base = p.base = ancestors[0];
             }
-            
+
             if (isCyclic(ancestors[0])) {
                 throw new Error("The module cyclic reference error.");
             }
@@ -264,26 +263,26 @@ Mixjs.module = function() {
     else {
         base.mix = function() {
             var c, cc, p;
+            var depth = 0;
             var parents = [], child = clone(this);
+            var propList = ["child"];
             parents.push.apply(parents, arguments);
             parents = uniq(parents);
-
-            for (var i = 0, len = parents.length; i < len; i++) {
-                var parent = clone(parents[i]);
-                    depth = 0;
-
-                if (child.has(parent)) continue;  
-
+            
+            for (var i = 1, parent = parents[0], len = parents.length; i < len; i++) {
+                parent = parent.mix(clone(parents[i]));
+            }
+            
+            if (!child.has(parent)) {
                 for (c = child; c.__proto__ !== null;) {
                     c = c.__proto__;
                     depth++;
                 }
-
-                var propList = ["child"];
+    
                 for (var d = 1; d <= depth; d++) {
                     propList[d] = "__proto__";
                 }
-
+    
                 try {
                     eval(propList.join(".") + " = parent");
                 }
@@ -296,13 +295,13 @@ Mixjs.module = function() {
                         throw e;
                     }
                 }
-            }
-
-            for (c = child; c.__proto__.hasOwnProperty("mix");) {
+    
+                for (c = child; c.__proto__.hasOwnProperty("mix");) {
+                    c.base = child;
+                    c = c.parent = c.__proto__;
+                }
                 c.base = child;
-                c = c.parent = c.__proto__;
             }
-            c.base = child;
 
             return child;
         };
