@@ -122,8 +122,6 @@ test("Mixjs.module()で生成したオブジェクト自身はMix-inの影響を
     }, "多重継承の影響をうけていなければで未継承オブジェクトのメソッドは取得できない");
 });
 
-
-
 test("Mix-inしたオブジェクトの親からその親のメソッドを参照できること", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
     same(obj.parent.getType(), "old type", "親がその親のメソッドを参照できること");
@@ -142,11 +140,6 @@ test("Mix-inしたオブジェクトの親からその祖先のメソッドを�
 test("多重継承したオブジェクトの親からその祖先のメソッドを参照できること", function() {
     var obj = Iphone.mix(Feature, Android, Telephone);
     same(obj.parent.getType(), "old type", "親がその親のメソッドを参照できること");
-});
-
-test("Mix-in済みオブジェクトにMix-inしたモジュールが含まれていること", function() {
-    var obj = Iphone.mix(Telephone).mix(Android);
-    same(obj.has(Iphone), true, "子オブジェクトにMix-inモジュールが含まれること");
 });
 
 test("Mix-in済みオブジェクトの親にMix-inしたモジュールが含まれていること", function() {
@@ -182,6 +175,18 @@ test("Mix-in済みオブジェクトにMix-inしていないモジュールは�
 test("多重継承済みオブジェクトにMix-inしていないモジュールは含まれないこと", function() {
     var obj = Iphone.mix(Telephone, Android);
     same(obj.has(Ipad), false, "Mix-inしていないモジュールは含まれないこと");
+});
+
+test("Mix-inの順序を考慮してhasによる所有判定ができること", function() {
+   var obj = Iphone.mix(Feature).mix(Telephone),
+       obj2 = Feature.mix(Telephone);
+   same(obj.has(obj2), true, "順序を考慮した所有判定ができること");
+});
+
+test("Mix-inの順序を考慮しない場合、hasによる所有判定ができないこと", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone),
+        obj2 = Telephone.mix(Feature);
+    same(obj.has(obj2), false, "順序を考慮しない場合、所有判定ができないこと");
 });
 
 test("同じモジュールはMix-inされないこと", function() {

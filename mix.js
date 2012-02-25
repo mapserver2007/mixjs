@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.2.2 (2011/11/10)
+ * version: 0.3.0 (2012/02/26)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -12,18 +12,27 @@ var Mixjs = {};
 Mixjs.module = function() {
     var MODULE_DEFINE_WITH_NAME           = arguments.length === 2,
         MODULE_DEFINE_WITH_NAME_AND_SCOPE = arguments.length === 3;
-    var isIE = [,]!=0,
+    var isIE678 = [,]!=0,
         prohibits = ["mix", "parent", "has", "base", "__moduleName__"],
         modules = [];
     var clone = function(o) {
-        var c = {};
-        for (var prop in o) if (o.hasOwnProperty(prop)) {
-            c[prop] = o[prop];
+        var c, prop;
+        if (isIE678) {
+            c = {};
+            for (prop in o) if (o.hasOwnProperty(prop)) {
+                c[prop] = o[prop];
+            }
+            return c;
         }
-        if (!isIE) {
-            c.__proto__ = o.__proto__;
+        else {
+            c = Object.create(Object.getPrototypeOf(o));
+            var props = Object.getOwnPropertyNames(o);
+            for (var name in props) {
+                prop = props[name];
+                Object.defineProperty(c, prop, Object.getOwnPropertyDescriptor(o, prop));
+            }
+            return c;
         }
-        return c;
     };
 
     var include = function(obj, incObjArray) {
@@ -83,11 +92,9 @@ Mixjs.module = function() {
             }
              
             // 循環が起きている可能性がある場合
-            if (cyclicFlg) {
-                // 同じモジュールが連続してcyclicCount回検出されたら循環
-                if (cyclicDepth === cyclicCount) {
-                    return true;
-                }
+            // 同じモジュールが連続してcyclicCount回検出されたら循環
+            if (cyclicFlg && cyclicDepth === cyclicCount) {
+                return true;
             }
              
             // 同じモジュールが検知された場合は循環が発生した可能性がある
@@ -180,43 +187,53 @@ Mixjs.module = function() {
         var isMixed = true,
             child = clone(this);
 
-        for (var pprop in parent) {
-            // 組み込みプロパティは検査対象としない
-            if (inArray(pprop, prohibits) !== -1) {
-                continue;
-            }
-
-            isMixed *= (function() {
-                for (var cprop in child) {
-                    for (var c = clone(child);;) {
-                        if (c[cprop] !== parent[pprop]) {
-                            // 親がいる場合
-                            if (c.hasOwnProperty("parent")) {
-                                c = c.parent;
-                            }
-                            // 親がいない場合
-                            else {
-                                break;
-                            }
-                        }
-                        // メソッドを持っている場合
-                        else {
-                            return true;
-                        }
-                    }
-                }
-                // メソッドが見つからなかった場合ここに到達する
-                return false;
-            })();
-
-            if (!!(!isMixed)) {
-                return false;
+        // 親がmix-in済みの場合分離する
+        var parents = [parent];
+        while (parent.hasOwnProperty("parent")) {
+            parent = parent.parent;
+            parents.push(parent);
+            if (!parent.hasOwnProperty("parent")) {
+                break;
             }
         }
-        return true;
+        
+        // 親の階層を辿り比較する。
+        // 階層が続く限り連続でマッチしない場合は所有していないとみなす
+        var hasModule = false;
+        for (var i = 0; i < parents.length; i++) {
+            parent = parents[i];
+            while (typeof child !== "undefined") {
+                for (var prop in child) if (child.hasOwnProperty(prop)) {
+                    // parentプロパティは検査対象としない
+                    // 実体が同じ場合でもmix-inされていると同一と判定されないため
+                    if (inArray(prop, prohibits) !== -1) {
+                        continue;
+                    }
+                    // IE678の場合、プロパティをすべて子供にコピーするため、
+                    // 親とプロパティ比較すると元のモジュールのプロパティと差異が生じる
+                    // 元のモジュールに含まれないプロパティの場合は比較対象としない
+                    var cp = child["parent"];
+                    if (typeof cp !== "undefined" && cp[prop] === child[prop]) {
+                        continue;
+                    }
+                    // 同じメソッドを持っているかどうか
+                    if (child[prop] !== parent[prop]) {
+                        hasModule = false;
+                        break;
+                    }
+                    else {
+                        hasModule = true;
+                    }
+                }
+                if (hasModule) break;
+                child = child["parent"];
+            }
+        }
+        
+        return hasModule;
     };
 
-    if (isIE) {
+    if (isIE678) {
         base.mix = function() {
             var ancestors = [], parents = [], child = clone(this);
             parents.push.apply(parents, arguments);
@@ -262,47 +279,36 @@ Mixjs.module = function() {
     }
     else {
         base.mix = function() {
-            var c, cc, p;
-            var depth = 0;
-            var parents = [], child = clone(this);
-            var propList = ["child"];
-            parents.push.apply(parents, arguments);
-            parents = uniq(parents);
+            var child, i, c, p, obj;
+            var modules = [this], ancestors = [];
+            modules.push.apply(modules, arguments);
             
-            for (var i = 1, parent = parents[0], len = parents.length; i < len; i++) {
-                parent = parent.mix(clone(parents[i]));
+            // すべてのモジュールに対して若い世代から順にバラしてancestorsに格納する
+            for (i = 0; i < modules.length; i++) {
+                child = modules[i];
+                while (Object.getPrototypeOf(child)) {
+                    ancestors.push(child);
+                    child = Object.getPrototypeOf(child);
+                }
             }
             
-            if (!child.has(parent)) {
-                for (c = child; c.__proto__ !== null;) {
-                    c = c.__proto__;
-                    depth++;
+            ancestors = uniq(ancestors);
+            for (i = ancestors.length - 1; i > 0; i--) {
+                p = ancestors[i], c = ancestors[i-1];
+                obj = Object.create(p);
+                for (var prop in c) if (c.hasOwnProperty(prop)) {
+                    obj[prop] = c[prop];
                 }
-    
-                for (var d = 1; d <= depth; d++) {
-                    propList[d] = "__proto__";
-                }
-    
-                try {
-                    eval(propList.join(".") + " = parent");
-                }
-                catch (e) {
-                    // 循環参照エラー
-                    if (e.message === "Cyclic __proto__ value") {
-                        throw new Error("The module cyclic reference error.");
-                    }
-                    else {
-                        throw e;
-                    }
-                }
-    
-                for (c = child; c.__proto__.hasOwnProperty("mix");) {
-                    c.base = child;
-                    c = c.parent = c.__proto__;
-                }
+                ancestors[i-1] = obj;
+            }
+            
+            child = ancestors[0];
+            for (c = child; Object.getPrototypeOf(c).hasOwnProperty("mix");) {
                 c.base = child;
+                c = c.parent = Object.getPrototypeOf(c);
             }
-
+            c.base = child;
+            
             return child;
         };
     }
