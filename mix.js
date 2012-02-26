@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.3.0 (2012/02/26)
+ * version: 0.3.1 (2012/02/26)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -184,8 +184,7 @@ Mixjs.module = function() {
     base.__moduleName__ = arguments[0];
 
     base.has = function(parent) {
-        var isMixed = true,
-            child = clone(this);
+        var child = clone(this);
 
         // 親がmix-in済みの場合分離する
         var parents = [parent];

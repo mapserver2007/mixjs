@@ -541,5 +541,10 @@ test("Mix-inでモジュールの循環参照が発生した場合、例外が�
     catch (e) {
         message = e.message;
     }
-    same(message, "The module cyclic reference error.", "循環参照エラーが起きる");
+    if ([,]!=0) {
+        same(message, "The module cyclic reference error.", "循環参照エラーが起きる");
+    }
+    else {
+        ok(true, "IE678以外では循環参照エラーは発生しない");
+    }    
 });
