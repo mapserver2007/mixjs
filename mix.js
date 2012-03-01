@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.3.1 (2012/02/26)
+ * version: 0.3.2 (2012/03/01)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -9,12 +9,37 @@
  */
 
 var Mixjs = {};
+/**
+ * モジュールを定義する
+ *
+ * 名前空間スコープを指定しない場合、グローバル領域にモジュールが追加される。
+ * 名前空間スコープを指定する場合、ローカルオブジェクト内にモジュールが追加される。
+ *
+ * @example
+ *   Mixjs.module('Iphone', {});
+ *   Mixjs.module('Iphone', scope, {});
+ *
+ * @param {String} モジュール名
+ * @param {Object} 名前空間スコープ(省略可能)
+ * @param {Object} モジュールの要素
+ *
+ * @static
+ */
 Mixjs.module = function() {
+    "use strict";
+
     var MODULE_DEFINE_WITH_NAME           = arguments.length === 2,
         MODULE_DEFINE_WITH_NAME_AND_SCOPE = arguments.length === 3;
     var isIE678 = [,]!=0,
+        isInclude = false,
         prohibits = ["mix", "parent", "has", "base", "__moduleName__"],
         modules = [];
+
+    /**
+     * オブジェクトをディープコピーする
+     * @param {Object} o コピー元オブジェクト
+     * @returns {Object} コピー後オブジェクト
+     */
     var clone = function(o) {
         var c, prop;
         if (isIE678) {
@@ -35,6 +60,12 @@ Mixjs.module = function() {
         }
     };
 
+    /**
+     * 内部Mix-inを実行する
+     * @param {MixjsObject} obj include先のmixjsオブジェクト
+     * @param {Array.<MixjsObject>} incObjArray includeするmixjsオブジェクト
+     * @returns {MixjsObject} include済みmixjsオブジェクト
+     */
     var include = function(obj, incObjArray) {
         for (var i = 0, len = incObjArray.length; i < len; i++) {
             var incObj = incObjArray[i];
@@ -45,6 +76,12 @@ Mixjs.module = function() {
         return obj;
     };
 
+    /**
+     * 配列の中に要素が含まれるかどうか検出する
+     * @param {*} elem 要素
+     * @param {Array} array 検索対象の配列
+     * @returns {Number} キー番号
+     */
     var inArray = function(elem, array) {
         for (var i = 0, len = array.length; i < len; i++) {
             if (array[i] === elem) {
@@ -54,6 +91,11 @@ Mixjs.module = function() {
         return -1;
     };
 
+    /**
+     * Mixjsオブジェクトかどうか検出する
+     * @param {Object} obj 対象オブジェクト
+     * @returns {Boolean}
+     */
     var isMixjsModule = function(obj) {
         if (typeof obj === "undefined") return false;
         var scope = {};
@@ -62,41 +104,54 @@ Mixjs.module = function() {
                obj.has.toString() === scope.Dummy.has.toString();
     };
 
+    /**
+     * include対象でないオブジェクトかどうか検出する
+     * @param {Object} obj 対象オブジェクト
+     * @returns {Boolean}
+     */
     var isIncludeError = function(obj) {
         return typeof obj !== "object" || (typeof obj === "object" && !isMixjsModule(obj));
     };
 
+    /**
+     * 現在未使用
+     */
     var hook = function(self, f) {
         return function() {
             return f.apply(self, arguments);
         }
     };
-    
+
+    /**
+     * 循環参照エラーを検出する
+     * @param {MixjsObject} obj 対象オブジェクト
+     * @returns {Boolean}
+     */
     var isCyclic = function(obj) {
         var ca = {}, parent = clone(obj);
         ca[parent.__moduleName__] = parent.__moduleName__;
-        
+
         var cyclicCount = ca[parent.__moduleName__].length,
             cyclicDepth = 0,
             cyclicFlg = false;
-        
+
         while (parent.hasOwnProperty("parent")) {
             // 循環チェック用配列を更新
             ca[parent.__moduleName__] = parent.__moduleName__;
             cyclicDepth++;
-            
+
             // 同じモジュールがcyclicCount回連続で検出されなければ循環可能性が消滅するのでフラグを消す
             if (ca[parent.__moduleName__].length > cyclicCount) {
                 cyclicCount = ca[parent.__moduleName__].length;
                 cyclicFlg = false;
             }
-             
+
             // 循環が起きている可能性がある場合
             // 同じモジュールが連続してcyclicCount回検出されたら循環
             if (cyclicFlg && cyclicDepth === cyclicCount) {
                 return true;
             }
-             
+
             // 同じモジュールが検知された場合は循環が発生した可能性がある
             // この時点では循環になっているかは不明なのでフラグを立てるだけ
             if (cyclicCount < cyclicDepth) {
@@ -104,13 +159,18 @@ Mixjs.module = function() {
                 cyclicDepth = 1;
                 cyclicFlg = true;
             }
-            
+
             parent = parent.parent;
         }
-        
+
         return false;
     };
 
+    /**
+     * 配列から重複する要素を取り除く
+     * @param {Array} ary 対象配列
+     * @returns {Array} 重複する要素を取り除いた配列
+     */
     var uniq = function(ary){
         var o = {}, a = [];
         for (var i = 0; i < ary.length; i++) {
@@ -181,8 +241,23 @@ Mixjs.module = function() {
         }
     }
 
+    /**
+     * 内部Mix-in対象モジュールが存在するか検出する
+     * @type {Boolean}
+     */
+    isInclude = modules.length !== 0;
+
+    /**
+     * モジュール名
+     * @type {String}
+     */
     base.__moduleName__ = arguments[0];
 
+    /**
+     * モジュールがMix-in済みかどうか検出する
+     * @param {MixjsObject} parent 対象オブジェクト
+     * @returns {Boolean}
+     */
     base.has = function(parent) {
         var child = clone(this);
 
@@ -195,7 +270,7 @@ Mixjs.module = function() {
                 break;
             }
         }
-        
+
         // 親の階層を辿り比較する。
         // 階層が続く限り連続でマッチしない場合は所有していないとみなす
         var hasModule = false;
@@ -228,17 +303,22 @@ Mixjs.module = function() {
                 child = child["parent"];
             }
         }
-        
+
         return hasModule;
     };
 
-    if (isIE678) {
-        base.mix = function() {
+    /**
+     * モジュールをMix-inする
+     * @param {...Object} Mix-in対象オブジェクト
+     * @returns {MixjsObject} Mix-in済みオブジェクト
+     */
+    base.mix = (function() {
+        var legacyMix = function() {
             var ancestors = [], parents = [], child = clone(this);
             parents.push.apply(parents, arguments);
             parents = uniq(parents);
             ancestors.push(child);
-            
+
             for (var i = 0, len = parents.length; i < len; i++) {
                 var parent = clone(parents[i]);
                 if (!child.has(parent)) {
@@ -264,7 +344,7 @@ Mixjs.module = function() {
                     }
                     c = c.parent;
                 }
-                
+
                 c.parent = p;
                 c.base = p.base = ancestors[0];
             }
@@ -275,13 +355,12 @@ Mixjs.module = function() {
 
             return ancestors[0];
         };
-    }
-    else {
-        base.mix = function() {
+
+        var modernMix = function() {
             var child, i, c, p, obj;
             var modules = [this], ancestors = [];
             modules.push.apply(modules, arguments);
-            
+
             // すべてのモジュールに対して若い世代から順にバラしてancestorsに格納する
             for (i = 0; i < modules.length; i++) {
                 child = modules[i];
@@ -290,7 +369,7 @@ Mixjs.module = function() {
                     child = Object.getPrototypeOf(child);
                 }
             }
-            
+
             ancestors = uniq(ancestors);
             for (i = ancestors.length - 1; i > 0; i--) {
                 p = ancestors[i], c = ancestors[i-1];
@@ -300,19 +379,19 @@ Mixjs.module = function() {
                 }
                 ancestors[i-1] = obj;
             }
-            
+
             child = ancestors[0];
             for (c = child; Object.getPrototypeOf(c).hasOwnProperty("mix");) {
-                c.base = child;
                 c = c.parent = Object.getPrototypeOf(c);
             }
             c.base = child;
-            
+
             return child;
         };
-    }
 
-    var isInclude = modules.length !== 0;
+        return isIE678 ? legacyMix : modernMix;
+    })();
+
     if (MODULE_DEFINE_WITH_NAME) {
         window[name] = isInclude ? include(base, modules) : base;
     }

@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.16 (2011/11/03)
+ * version: 0.1.17 (2012/03/01)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -15,7 +15,7 @@ Mixjs.module("Utils", {
     /**
      * jQueryバージョン
      */
-    latestJQueryVersion_: "1.6.4",
+    latestJQueryVersion_: "1.7.1",
 
     /**
      * ホスティングjQueryを開く
@@ -576,7 +576,7 @@ Mixjs.module("Http", {
                             self.error(errorCallback, textStatus, errorThrown);
                         }
                     });
-                }            
+                }
             });
         }
     },
@@ -765,7 +765,7 @@ Mixjs.module("Http", {
  */
 Mixjs.module("XdomainHttp", {
     include: Http,
-    
+
     /** xdomain-ajax用ライブラリ */
     xdomainAjaxLib: "https://raw.github.com/jamespadolsey/jQuery-Plugins/master/cross-domain-ajax/jquery.xdomainajax.js",
 
