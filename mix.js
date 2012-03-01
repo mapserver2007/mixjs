@@ -31,7 +31,6 @@ Mixjs.module = function() {
     var MODULE_DEFINE_WITH_NAME           = arguments.length === 2,
         MODULE_DEFINE_WITH_NAME_AND_SCOPE = arguments.length === 3;
     var isIE678 = [,]!=0,
-        isInclude = false,
         prohibits = ["mix", "parent", "has", "base", "__moduleName__"],
         modules = [];
 
@@ -114,11 +113,18 @@ Mixjs.module = function() {
     };
 
     /**
-     * 現在未使用
+     * 指定したメソッドをフックする
+     * @param {String} prop メソッド名
+     * @param {Function} f メソッド
+     * @returns {Function} フックしたメソッド
      */
-    var hook = function(self, f) {
+    var hook = function(prop, f) {
         return function() {
-            return f.apply(self, arguments);
+            var callback = this.__hookStack__[prop];
+            if (typeof callback !== "undefined") {
+                this.__hookStack__[prop].apply(this, arguments);
+            }
+            return f.apply(this, arguments);
         }
     };
 
@@ -239,13 +245,14 @@ Mixjs.module = function() {
             }
             delete base.include;
         }
+        base[prop] = hook(prop, base[prop]);
     }
 
     /**
      * 内部Mix-in対象モジュールが存在するか検出する
      * @type {Boolean}
      */
-    isInclude = modules.length !== 0;
+    var isInclude = modules.length !== 0;
 
     /**
      * モジュール名
@@ -375,6 +382,7 @@ Mixjs.module = function() {
                 p = ancestors[i], c = ancestors[i-1];
                 obj = Object.create(p);
                 for (var prop in c) if (c.hasOwnProperty(prop)) {
+                    //obj[prop] = hook(this, c[prop]);
                     obj[prop] = c[prop];
                 }
                 ancestors[i-1] = obj;
@@ -385,6 +393,10 @@ Mixjs.module = function() {
                 c = c.parent = Object.getPrototypeOf(c);
             }
             c.base = child;
+            c.hook = function(prop, callback) {
+                this.__hookStack__[prop] = callback;
+            };
+            c.__hookStack__ = {};
 
             return child;
         };
@@ -392,6 +404,12 @@ Mixjs.module = function() {
         return isIE678 ? legacyMix : modernMix;
     })();
 
+//    for (var prop in base) if (base.hasOwnProperty(prop)) {
+//        if (inArray(prop, prohibits) === -1) {
+//            base[prop] = hook(base, base[prop], prop);
+//        }
+//    }
+    
     if (MODULE_DEFINE_WITH_NAME) {
         window[name] = isInclude ? include(base, modules) : base;
     }
