@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.3.2 (2012/03/01)
+ * version: 0.4.0 (2012/03/04)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -26,12 +26,12 @@ var Mixjs = {};
  * @static
  */
 Mixjs.module = function() {
-    "use strict";
-
+    'use strict';
     var MODULE_DEFINE_WITH_NAME           = arguments.length === 2,
         MODULE_DEFINE_WITH_NAME_AND_SCOPE = arguments.length === 3;
     var isIE678 = [,]!=0,
-        prohibits = ["mix", "parent", "has", "base", "__moduleName__"],
+        prohibits = ['mix', 'parent', 'has', 'base', 'hook', '__hookStack__', '__moduleName__'],
+        onlyFounder = ['hook', '__hookStack__', 'base'],
         modules = [];
 
     /**
@@ -96,9 +96,9 @@ Mixjs.module = function() {
      * @returns {Boolean}
      */
     var isMixjsModule = function(obj) {
-        if (typeof obj === "undefined") return false;
+        if (typeof obj === 'undefined') return false;
         var scope = {};
-        Mixjs.module("Dummy", scope, {});
+        Mixjs.module('Dummy', scope, {});
         return obj.mix.toString() === scope.Dummy.mix.toString() &&
                obj.has.toString() === scope.Dummy.has.toString();
     };
@@ -109,7 +109,7 @@ Mixjs.module = function() {
      * @returns {Boolean}
      */
     var isIncludeError = function(obj) {
-        return typeof obj !== "object" || (typeof obj === "object" && !isMixjsModule(obj));
+        return typeof obj !== 'object' || (typeof obj === 'object' && !isMixjsModule(obj));
     };
 
     /**
@@ -120,12 +120,28 @@ Mixjs.module = function() {
      */
     var hook = function(prop, f) {
         return function() {
-            var callback = this.__hookStack__[prop];
-            if (typeof callback !== "undefined") {
-                this.__hookStack__[prop].apply(this, arguments);
+            var hookInfo;
+            var self = this;
+            if (isIE678) {
+                while (self.hasOwnProperty('parent')) {
+                    self = self.parent;
+                }
             }
+            hookInfo = self.__hookStack__[prop];
+            if (typeof hookInfo !== 'undefined') {
+                var receiver = hookInfo.receiver,
+                    callback = hookInfo.callback,
+                    isRef = hookInfo.isRef;
+                
+                while (typeof receiver !== 'undefined') {
+                    callback.apply(receiver, arguments);
+                    if (isRef !== true) break;
+                    receiver = receiver.parent;
+                }
+            }
+            
             return f.apply(this, arguments);
-        }
+        };
     };
 
     /**
@@ -141,7 +157,7 @@ Mixjs.module = function() {
             cyclicDepth = 0,
             cyclicFlg = false;
 
-        while (parent.hasOwnProperty("parent")) {
+        while (parent.hasOwnProperty('parent')) {
             // 循環チェック用配列を更新
             ca[parent.__moduleName__] = parent.__moduleName__;
             cyclicDepth++;
@@ -191,23 +207,23 @@ Mixjs.module = function() {
     var name, scope, base;
     try {
         if (MODULE_DEFINE_WITH_NAME) {
-            if (typeof arguments[0] !== "string") {
+            if (typeof arguments[0] !== 'string') {
                 throw "type of name must be string.";
             }
-            if (typeof arguments[1] !== "object") {
+            if (typeof arguments[1] !== 'object') {
                 throw "type of base must be object.";
             }
             name = arguments[0];
             base = arguments[1];
         }
         else if (MODULE_DEFINE_WITH_NAME_AND_SCOPE) {
-            if (typeof arguments[0] !== "string") {
+            if (typeof arguments[0] !== 'string') {
                 throw "type of name must be string.";
             }
-            if (typeof arguments[1] !== "object") {
+            if (typeof arguments[1] !== 'object') {
                 throw "type of scope must be object.";
             }
-            if (typeof arguments[2] !== "object") {
+            if (typeof arguments[2] !== 'object') {
                 throw "type of base must be object.";
             }
             name = arguments[0];
@@ -245,7 +261,10 @@ Mixjs.module = function() {
             }
             delete base.include;
         }
-        base[prop] = hook(prop, base[prop]);
+        // プロパティが関数の場合のみフックする
+        if (typeof base[prop] === "function") {
+            base[prop] = hook(prop, base[prop]);
+        }
     }
 
     /**
@@ -270,10 +289,10 @@ Mixjs.module = function() {
 
         // 親がmix-in済みの場合分離する
         var parents = [parent];
-        while (parent.hasOwnProperty("parent")) {
+        while (parent.hasOwnProperty('parent')) {
             parent = parent.parent;
             parents.push(parent);
-            if (!parent.hasOwnProperty("parent")) {
+            if (!parent.hasOwnProperty('parent')) {
                 break;
             }
         }
@@ -283,7 +302,7 @@ Mixjs.module = function() {
         var hasModule = false;
         for (var i = 0; i < parents.length; i++) {
             parent = parents[i];
-            while (typeof child !== "undefined") {
+            while (typeof child !== 'undefined') {
                 for (var prop in child) if (child.hasOwnProperty(prop)) {
                     // parentプロパティは検査対象としない
                     // 実体が同じ場合でもmix-inされていると同一と判定されないため
@@ -293,8 +312,8 @@ Mixjs.module = function() {
                     // IE678の場合、プロパティをすべて子供にコピーするため、
                     // 親とプロパティ比較すると元のモジュールのプロパティと差異が生じる
                     // 元のモジュールに含まれないプロパティの場合は比較対象としない
-                    var cp = child["parent"];
-                    if (typeof cp !== "undefined" && cp[prop] === child[prop]) {
+                    var cp = child['parent'];
+                    if (typeof cp !== 'undefined' && cp[prop] === child[prop]) {
                         continue;
                     }
                     // 同じメソッドを持っているかどうか
@@ -307,7 +326,7 @@ Mixjs.module = function() {
                     }
                 }
                 if (hasModule) break;
-                child = child["parent"];
+                child = child['parent'];
             }
         }
 
@@ -346,7 +365,7 @@ Mixjs.module = function() {
                             c[prop] = p[prop];
                         }
                     }
-                    if (!c.hasOwnProperty("parent")) {
+                    if (!c.hasOwnProperty('parent')) {
                         break;
                     }
                     c = c.parent;
@@ -354,11 +373,35 @@ Mixjs.module = function() {
 
                 c.parent = p;
                 c.base = p.base = ancestors[0];
+                
+                c.hook = p.hook = function(prop, callback, isRef) {
+                    var self = this;
+                    while (self.hasOwnProperty('parent')) {
+                        if (inArray(prop, prohibits) !== -1) {
+                            throw new Error("'" + prop + "' can't be hooking.");
+                        }
+                        self = self.parent;
+                    }
+                    self.__hookStack__[prop] = {
+                        receiver: this,
+                        callback: callback,
+                        isRef: isRef
+                    };
+                };
             }
 
-            if (isCyclic(ancestors[0])) {
+            child = ancestors[0];
+            if (isCyclic(child)) {
                 throw new Error("The module cyclic reference error.");
             }
+            
+            while (child.hasOwnProperty('parent')) {
+                if (child.hasOwnProperty('__hookStack__')) {
+                    delete child.__hookStack__;
+                }
+                child = child.parent;
+            }
+            child.__hookStack__ = {};
 
             return ancestors[0];
         };
@@ -382,34 +425,38 @@ Mixjs.module = function() {
                 p = ancestors[i], c = ancestors[i-1];
                 obj = Object.create(p);
                 for (var prop in c) if (c.hasOwnProperty(prop)) {
-                    //obj[prop] = hook(this, c[prop]);
-                    obj[prop] = c[prop];
+                    // onlyFounderの各プロパティはプロトタイプチェーンで辿るため
+                    // 一番最後の親以外にコピーしない
+                    if (inArray(prop, onlyFounder) === -1) {
+                        obj[prop] = c[prop];
+                    }
                 }
                 ancestors[i-1] = obj;
             }
 
             child = ancestors[0];
-            for (c = child; Object.getPrototypeOf(c).hasOwnProperty("mix");) {
+            for (c = child; Object.getPrototypeOf(c).hasOwnProperty('mix');) {
                 c = c.parent = Object.getPrototypeOf(c);
             }
             c.base = child;
-            c.hook = function(prop, callback) {
-                this.__hookStack__[prop] = callback;
+            c.hook = function(prop, callback, isRef) {
+                var self = clone(this);
+                if (inArray(prop, prohibits) !== -1) {
+                    throw new Error("'" + prop + "' can't be hooking.");
+                }
+                self.__hookStack__[prop] = {
+                    receiver: self,
+                    callback: callback,
+                    isRef: isRef
+                };
             };
             c.__hookStack__ = {};
 
             return child;
         };
-
         return isIE678 ? legacyMix : modernMix;
     })();
 
-//    for (var prop in base) if (base.hasOwnProperty(prop)) {
-//        if (inArray(prop, prohibits) === -1) {
-//            base[prop] = hook(base, base[prop], prop);
-//        }
-//    }
-    
     if (MODULE_DEFINE_WITH_NAME) {
         window[name] = isInclude ? include(base, modules) : base;
     }
