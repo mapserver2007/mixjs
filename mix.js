@@ -1,6 +1,6 @@
 /*
  * mix.js
- * version: 0.4.0 (2012/03/04)
+ * version: 0.4.1 (2012/03/04)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -440,7 +440,7 @@ Mixjs.module = function() {
             }
             c.base = child;
             c.hook = function(prop, callback, isRef) {
-                var self = clone(this);
+                var self = this;
                 if (inArray(prop, prohibits) !== -1) {
                     throw new Error("'" + prop + "' can't be hooking.");
                 }

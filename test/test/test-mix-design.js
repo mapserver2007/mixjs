@@ -9,9 +9,9 @@ asyncTest("指定した領域にフィルタがかかること", function() {
     });
     setTimeout(function() {
         start();
-        same(elem.lastChild.getAttribute("id"), "filter", "指定領域にフィルタがかかっていること");
+        deepEqual(elem.lastChild.getAttribute("id"), "filter", "指定領域にフィルタがかかっていること");
         obj.hideFilter();
-        same(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
+        deepEqual(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
     }, 1000);
 });
 
@@ -21,9 +21,9 @@ asyncTest("領域を指定しない場合は画面全体にフィルタがかか
     obj.showFilter();
     setTimeout(function() {
         start();
-        same(document.body.lastChild.getAttribute("id"), "filter", "画面全体にフィルタがかかっていること");
+        deepEqual(document.body.lastChild.getAttribute("id"), "filter", "画面全体にフィルタがかかっていること");
         obj.hideFilter();
-        same(document.getElementById("filter"), null, "画面全体からフィルタが削除されたこと");
+        deepEqual(document.getElementById("filter"), null, "画面全体からフィルタが削除されたこと");
     }, 1000);
 });
 
@@ -38,9 +38,9 @@ asyncTest("指定した領域がjQueryオブジェクトの場合、正常にフ
         });
         setTimeout(function() {
             start();
-            same($("#qunit-header").children(":last-child").attr("id"), "filter", "指定領域にフィルタがかかっていること");
+            deepEqual($("#qunit-header").children(":last-child").attr("id"), "filter", "指定領域にフィルタがかかっていること");
             obj.hideFilter();
-            same(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
+            deepEqual(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
         }, 1000);
     }, 10);
 });
@@ -56,9 +56,9 @@ asyncTest("フィルタに文字列が表示できること", function() {
     });
     setTimeout(function() {
         start();
-        same(elem.lastChild.lastChild.innerHTML, text, "フィルタに文字が表示されること");
+        deepEqual(elem.lastChild.lastChild.innerHTML, text, "フィルタに文字が表示されること");
         obj.hideFilter();
-        same(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
+        deepEqual(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
     }, 1000);
 });
 
@@ -73,9 +73,9 @@ asyncTest("フィルタに画像が表示できること", function() {
     });
     setTimeout(function() {
         start();
-        same(elem.lastChild.lastChild.getAttribute("src"), img, "フィルタに画像が表示されること");
+        deepEqual(elem.lastChild.lastChild.getAttribute("src"), img, "フィルタに画像が表示されること");
         obj.hideFilter();
-        same(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
+        deepEqual(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
     }, 1000);
 });
 
@@ -94,10 +94,10 @@ asyncTest("フィルタに文字列と画像が表示できること", function(
         start();
         var _img = elem.lastChild.childNodes[0].getAttribute("src");
         var _text = elem.lastChild.childNodes[1].innerHTML;
-        same(_img, img, "フィルタに画像が表示されること");
-        same(_text, text, "フィルタに文字列が表示されること");
+        deepEqual(_img, img, "フィルタに画像が表示されること");
+        deepEqual(_text, text, "フィルタに文字列が表示されること");
         obj.hideFilter();
-        same(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
+        deepEqual(document.getElementById("filter"), null, "指定領域からフィルタが削除されたこと");
     }, 1000);
 });
 
@@ -108,8 +108,8 @@ asyncTest("フィルタ名を任意の名前に変更できること", function(
     obj.showFilter({}, filterName);
     setTimeout(function() {
         start();
-        same(document.body.lastChild.getAttribute("id"), filterName, "指定したフィルタ名が適用されること");
+        deepEqual(document.body.lastChild.getAttribute("id"), filterName, "指定したフィルタ名が適用されること");
         obj.hideFilter(filterName);
-        same(document.getElementById(filterName), null, "指定領域からフィルタが削除されたこと");
+        deepEqual(document.getElementById(filterName), null, "指定領域からフィルタが削除されたこと");
     }, 1000);
 });

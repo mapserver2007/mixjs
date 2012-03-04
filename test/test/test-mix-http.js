@@ -4,13 +4,13 @@ asyncTest("JSONPが実行出来ること", function() {
     Mixjs.module("Test", {});
     var obj = Test.mix(Http);
     obj.xhr({
-        url: "http://tepco-usage-api.appspot.com/latest.json",
+        url: "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/",
         params: {},
         args: {dataType: "jsonp"},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
-                same(typeof data, "object", "JSONPを実行してデータが取得できる");
+                deepEqual(typeof data, "object", "JSONPを実行してデータが取得できる");
             }, 1000);
         },
         errorCallback: function() {
@@ -38,7 +38,7 @@ asyncTest("JSONPでエラーが起きても処理が止まらないこと", func
         errorCallback: function(errorData) {
             setTimeout(function() {
                 start();
-                same(errorData, null, "エラーが発生してもコールバック実行が可能");
+                deepEqual(errorData, null, "エラーが発生してもコールバック実行が可能");
             }, 1000);
         }
     });
@@ -48,13 +48,13 @@ asyncTest("タイムアウトを設定してJSONPが正常に実行できたと�
     Mixjs.module("Test", {});
     var obj = Test.mix(Http);
     obj.xhr({
-        url: "http://tepco-usage-api.appspot.com/latest.json",
+        url: "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/",
         params: {},
         args: {dataType: "jsonp", timeout: 3000},
         successCallback: function(data) {
             setTimeout(function() {
                 start();
-                same(typeof data, "object", "タイムアウトを設定しても正常実行されればエラーにならない");
+                deepEqual(typeof data, "object", "タイムアウトを設定しても正常実行されればエラーにならない");
             }, 1000);
         },
         errorCallback: function() {
@@ -82,7 +82,7 @@ asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき�
         errorCallback: function(errorData) {
             setTimeout(function() {
                 start();
-                same(errorData, null, "タイムアウトが発生してもコールバック実行が可能");
+                deepEqual(errorData, null, "タイムアウトが発生してもコールバック実行が可能");
             }, 1000);
         }
     });
@@ -91,7 +91,7 @@ asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき�
 asyncTest("キャッシュを有効にしたとき、データがキャッシュされること", function() {
     Mixjs.module("Test", {});
     var obj = Test.mix(Http, Cache);
-    var url = "http://tepco-usage-api.appspot.com/latest.json";
+    var url = "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/";
     obj.xhr({
         url: url,
         params: {},
@@ -99,8 +99,8 @@ asyncTest("キャッシュを有効にしたとき、データがキャッシュ
         successCallback: function(data) {
             setTimeout(function() {
                 start();
-                same(typeof data, "object", "1回目は通信して取得する");
-                same(typeof obj.getCache(url), "object", "キャッシュデータが保存されていること");
+                deepEqual(typeof data, "object", "1回目は通信して取得する");
+                deepEqual(typeof obj.getCache(url), "object", "キャッシュデータが保存されていること");
             }, 1000);
         },
         errorCallback: function(errorData) {
