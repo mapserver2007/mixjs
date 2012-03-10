@@ -185,10 +185,7 @@ Mixjs.module = function() {
                 // 単純にparentを辿るだけだと実体レシーバを取得できない
                 // コピーされたメソッドの中身はラップ関数で、トークンが埋めこまれているのでそれを検知する
                 while (typeof target !== 'undefined') {
-                    var tokenPosition = target[prop].toString().replace(/\s/g, '').indexOf(PROTOTYPE_CHAIN_TOKEN, 0);
-                    if (tokenPosition !== PROTOTYPE_CHAIN_TOKEN_POSITION) {
-                        break;
-                    }
+                    if (!isCopied(target[prop])) break;
                     target = target.parent;
                 }
             }
