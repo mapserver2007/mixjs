@@ -549,52 +549,216 @@ test("Mix-inでモジュールの循環参照が発生した場合、例外が�
     }    
 });
 
-test("プロパティが関数の場合、フック関数でラップされていること", function() {
-    var obj = Iphone.mix(Feature).mix(Telephone);
-    var trim = function(f) {
-        return f.toString().replace(/\s/g, '');
-    };
-    deepEqual(typeof obj.getPhoneName, "function", "Iphone#getPhoneNameはfunctionである");
-    deepEqual(trim(obj.getPhoneName), trim(hookFunction), "関数の場合はhook用関数でラップされる");
+test("親にプリミティブ値を返すプロパティがあり、子にはそのプロパティがない場合、関数でラップされず値をそのまま返却すること", function() {
+    var obj = Ds.mix(Dsi).mix(Ds3d);
+    deepEqual(typeof obj.generation, "number", "Dsi#generationはnumberである");
+    deepEqual(obj.generation, 2, "プロトタイプチェーンで値を取得できる");
 });
 
-test("プロパティが関数でない場合、フック関数でラップされずそのままの値を返すこと", function() {
+test("実行するメソッドは子、フック対象のメソッドのレシーバが子の場合、フックされること。ただし実行するメソッドは子にしか存在しない", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
-    var trim = function(f) {
-        return f.toString().replace(/\s/g, '');
-    }
-    deepEqual(typeof obj.category, "string", "Iphone#categoryはstringである");
-    notDeepEqual(obj.category, trim(hookFunction), "関数以外の場合はhook用関数でラップされない");
-});
-
-test("hookメソッドの第三引数になにも設定しない場合、指定したメソッドをフックできること", function() {
-    var obj = Iphone.mix(Feature).mix(Telephone);
-    var count = 0;
-    obj.hook("getPhoneName", function() {
-        count++;
+    var message = null, moduleName = null;
+    obj.hook("getPhoneOS", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
     });
-    obj.getPhoneName();
-    deepEqual(count, 1, "Iphone#getPhoneNameのみフックが実行される");
+    obj.getPhoneOS("hoge");
+    deepEqual(message, "hoge", "Iphone#getPhoneOSをフックできる");
+    deepEqual(moduleName, "Iphone", "フックしたモジュールのレシーバはIphone");
 });
 
-test("hookメソッドの第三引数にtrueを設定した場合、指定したメソッドを親を辿ってすべてフックできること", function() {
+test("実行するメソッドは子、フック対象のメソッドのレシーバが子の場合、フックされること。ただし実行するメソッドはすべての世代に存在する", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
-    var count = 0;
-    obj.hook("getPhoneName", function() {
-        count++;
-    }, true);
-    obj.getPhoneName();
-    deepEqual(count, 3, "(Iphone|Feature|Telephone)#getPhoneNameに対してフックが実行される");
+    var message = null, moduleName = null;
+    obj.hook("getPhoneName", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getPhoneName("hoge");
+    deepEqual(message, "hoge", "Iphone#getPhoneNameをフックできる");
+    deepEqual(moduleName, "Iphone", "フックしたモジュールのレシーバはIphone");
 });
 
-test("hookメソッドのレシーバが子ではなく親から始まる場合、親から辿りすべてフックできること", function() {
+test("実行するメソッドは親、フック対象のメソッドのレシーバが子の場合、フックされないこと。ただし実行するメソッドは親にしか存在しない", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
-    var count = 0;
-    obj.parent.hook("getPhoneName", function() {
-        count++;
+    var message = null, moduleName = null;
+    obj.hook("setPhoneType", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.parent.setPhoneType("hoge");
+    deepEqual(message, null, "Feature#setPhoneTypeをフックできない");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得できない");
+});
+
+test("実行するメソッドは親、フック対象のメソッドのレシーバが子の場合、フックされないこと。ただし実行するメソッドはすべての世代に存在する", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.hook("getPhoneName", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.parent.getPhoneName("hoge");
+    deepEqual(message, null, "Feature#getPhoneNameをフックできない");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得できない");
+});
+
+test("実行するメソッドは親、フック対象のメソッドのレシーバが子の場合、かつ、chainフラグを立てた場合はフックされること。ただし実行するメソッドは親にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.hook("setPhoneType", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
     }, true);
-    obj.getPhoneName();
-    deepEqual(count, 2, "(Feature|Telephone)#getPhoneNameに対してフックが実行される");
+    obj.parent.setPhoneType("hoge");
+    deepEqual(message, "hoge", "Feature#setPhoneTypeをフックできる");
+    deepEqual(moduleName, "Feature", "フックしたモジュールのレシーバはFeature");
+});
+
+test("実行するメソッドは親、フック対象のメソッドのレシーバが子の場合、かつ、chainフラグを立てた場合はフックされること。ただし実行するメソッドはすべての世代に存在する", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.hook("getPhoneName", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    }, true);
+    obj.parent.getPhoneName("hoge");
+    deepEqual(message, "hoge", "Feature#getPhoneNameをフックできる");
+    deepEqual(moduleName, "Feature", "フックしたモジュールのレシーバはFeature");
+});
+
+test("実行するメソッドは子、フック対象のメソッドのレシーバが親の場合、フックされないこと。ただし実行するメソッドは子にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.parent.hook("getPhoneOS", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getPhoneOS("hoge");
+    deepEqual(message, null, "Iphone#getPhoneOSをフックできない");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得できない");
+});
+
+test("実行するメソッドは子、フック対象のメソッドのレシーバが親の場合、フックされないこと。ただし実行するメソッドはすべての世代に存在する", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.parent.hook("getPhoneName", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getPhoneName("hoge");
+    deepEqual(message, null, "Iphone#getPhoneNameをフックできない");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得できない");
+});
+
+//(5)のてすと
+test("実行するメソッドは子、フック対象のメソッドのレシーバが親の場合、かつ、chainフラグを立てた場合はフックされること。ただし実行するメソッドは子にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.parent.hook("getPhoneOS", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    }, true);
+    obj.getPhoneOS("hoge");
+    deepEqual(message, null, "Iphone#getPhoneOSをフックできる");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得はIphone");
+});
+
+test("実行するメソッドは子、フック対象のメソッドのレシーバが親の場合、かつ、chainフラグを立てた場合はフックされないこと。ただし実行するメソッドはすべての世代に存在する", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.parent.hook("getPhoneName", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    }, true);
+    obj.getPhoneName("hoge");
+    deepEqual(message, null, "Iphone#getPhoneNameをフックできない");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得できない");
+});
+
+test("実行するメソッドは子だがプロトタイプチェーンで親の親を参照し、フック対象のメソッドのレシーバが子の場合、フックされないこと。ただし実行するメソッドは親の親にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.hook("getType", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getType("hoge");
+    deepEqual(message, null, "Telephone#ggetTypeをフックできないこと");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得できない");
+});
+
+test("実行するメソッドは子だがプロトタイプチェーンで親の親を参照し、フック対象のメソッドのレシーバが子の場合、かつ、chainフラグを立てた場合はフックされる。ただし実行するメソッドは親の親にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.hook("getType", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    }, true);
+    obj.getType("hoge");
+    deepEqual(message, "hoge", "Telephone#getTypeをフックできること");
+    deepEqual(moduleName, "Telephone", "モジュールのレシーバは取得はTelephone");
+});
+
+//(8)のてすと
+test("実行するメソッドは子だがプロトタイプチェーンで親の親を参照し、フック対象のメソッドのレシーバが親の場合、フックされないこと。ただし実行するメソッドは親の親にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.parent.hook("getType", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getType("hoge");
+    deepEqual(message, null, "Telephone#getTypeをフックできないこと");
+    deepEqual(moduleName, null, "モジュールのレシーバは取得はできない");
+});
+
+test("実行するメソッドは子だがプロトタイプチェーンで親の親を参照し、フック対象のメソッドのレシーバが親の親の場合、フックされること。ただし実行するメソッドは親の親にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.parent.parent.hook("getType", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getType("hoge");
+    deepEqual(message, "hoge", "Telephone#getTypeをフックできること");
+    deepEqual(moduleName, "Telephone", "モジュールのレシーバは取得はTelephone");
+});
+
+test("実行するメソッドは親の親で、フック対象のメソッドのレシーバが子の場合、かつ、chainフラグを立てた場合フックされること。ただし実行するメソッドは親の親にしか存在しない", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.parent.parent.hook("getType", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    }, true);
+    obj.getType("hoge");
+    deepEqual(message, "hoge", "Telephone#getTypeをフックできること");
+    deepEqual(moduleName, "Telephone", "モジュールのレシーバは取得はTelephone");
+});
+
+test("正規表現によるフックができること", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.hook(/get.*?/, function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getPhoneName("hoge");
+    deepEqual(message, "hoge", "Iphone#getPhoneNameをフックできること");
+    deepEqual(moduleName, "Iphone", "モジュールのレシーバは取得はIphone");
+});
+
+test("chainフラグを立てて、正規表現によるフックができること", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone);
+    var message = null, moduleName = null;
+    obj.hook(/get.*?/, function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    }, true);
+    obj.getType("hoge");
+    deepEqual(message, "hoge", "Telephone#getPhoneNameをフックできること");
+    deepEqual(moduleName, "Telephone", "モジュールのレシーバは取得はTelephone");
 });
 
 test("予約済みメソッドに対してはフックできないこと", function() {

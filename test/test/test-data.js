@@ -11,11 +11,13 @@ Mixjs.module("Telephone", {
 Mixjs.module("Feature", {
     getPhoneName: function() {
         return "garake-";
-    }
+    },
+    setPhoneType: function(type) {}
 });
 
 Mixjs.module("Iphone", {
     category: "SmartPhone",
+    getPhoneOS: function(os) {},
     getPhoneName: function() {
         return "iphone";
     }
@@ -103,6 +105,20 @@ Mixjs.module("Windows7", {
     }
 });
 
+Mixjs.module("Ds", {
+    name: "DS"
+});
+
+Mixjs.module("Dsi", {
+    name: "DSi",
+    generation: 2
+});
+
+Mixjs.module("Ds3d", {
+    name: "3DS",
+    generation: 3
+});
+
 var scope = {};
 Mixjs.module("Iphone", scope, {
     getPhoneName: function() {
@@ -115,27 +131,3 @@ Mixjs.module("Feature", scope, {
         return "garake-";
     }
 });
-
-var hookFunction = function() {
-    var hookInfo;
-    var self = this;
-    if (isIE678) {
-        while (self.hasOwnProperty('parent')) {
-            self = self.parent;
-        }
-    }
-    hookInfo = self.__hookStack__[prop];
-    if (typeof hookInfo !== 'undefined') {
-        var receiver = hookInfo.receiver,
-            callback = hookInfo.callback,
-            isRef = hookInfo.isRef;
-        
-        while (typeof receiver !== 'undefined') {
-            callback.apply(receiver, arguments);
-            if (isRef !== true) break;
-            receiver = receiver.parent;
-        }
-    }
-    
-    return f.apply(this, arguments);
-};
