@@ -555,6 +555,18 @@ test("親にプリミティブ値を返すプロパティがあり、子には�
     deepEqual(obj.generation, 2, "プロトタイプチェーンで値を取得できる");
 });
 
+test("モジュール自体に対してフックできること", function() {
+    var obj = Iphone;
+    var message = null, moduleName = null;
+    obj.hook("getPhoneOS", function(arg) {
+        moduleName = this.__moduleName__;
+        message = arg;
+    });
+    obj.getPhoneOS("hoge");
+    deepEqual(message, "hoge", "Iphone#getPhoneOSをフックできる");
+    deepEqual(moduleName, "Iphone", "フックしたモジュールのレシーバはIphone");
+});
+
 test("実行するメソッドは子、フック対象のメソッドのレシーバが子の場合、フックされること。ただし実行するメソッドは子にしか存在しない", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
     var message = null, moduleName = null;

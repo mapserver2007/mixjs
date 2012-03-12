@@ -1,6 +1,6 @@
 /**
  * mix.js
- * version: 0.4.2 (2012/03/10)
+ * version: 0.4.3 (2012/03/12)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -113,7 +113,7 @@ Mixjs.module = function() {
     var isIncludeError = function(obj) {
         return typeof obj !== 'object' || (typeof obj === 'object' && !isMixjsModule(obj));
     };
-    
+
     /**
      * フック処理を実行する
      * @param {Srting} フック対象のメソッド名
@@ -140,7 +140,7 @@ Mixjs.module = function() {
             self = self.parent;
         }
     };
-    
+
     /**
      * フック処理に必要なパラメータをセットする
      * @param {MixjsObject} hookメソッド実行時のレシーバ
@@ -195,9 +195,9 @@ Mixjs.module = function() {
                     target = target.parent;
                 }
             }
-            
+
             var hookInfo = self.__hookStack__[prop];
-            
+
             if (hookInfo instanceof Array) {
                 for (var i = 0; i < hookInfo.length; i++) {
                     var receiver = hookInfo[i].receiver,
@@ -213,7 +213,7 @@ Mixjs.module = function() {
             return f.apply(this, arguments);
         };
     };
-    
+
     /**
      * 循環参照エラーを検出する
      * @param {MixjsObject} obj 対象オブジェクト
@@ -257,7 +257,7 @@ Mixjs.module = function() {
 
         return false;
     };
-    
+
     /**
      * 親からコピーされた関数であるかどうか(IE6,7,8のみ使用)
      * @param {Function} 対象関数
@@ -359,6 +359,18 @@ Mixjs.module = function() {
     base.__moduleName__ = arguments[0];
 
     /**
+     * フックメソッド
+     * @type {Function}
+     */
+    base.hook = hook;
+
+    /**
+     * フックスタック
+     * @type {Object}
+     */
+    base.__hookStack__ = {};
+
+    /**
      * モジュールがMix-in済みかどうか検出する
      * @param {MixjsObject} parent 対象オブジェクト
      * @returns {Boolean}
@@ -434,7 +446,7 @@ Mixjs.module = function() {
                     ancestors.push(parent);
                 }
             }
-            
+
             for (i = ancestors.length - 1; i > 0; i--) {
                 var parentNo = i,
                     childNo = parentNo - 1;
