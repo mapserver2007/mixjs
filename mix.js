@@ -1,6 +1,6 @@
 /**
  * mix.js
- * version: 0.5.0 (2012/03/17)
+ * version: 0.5.1 (2012/03/17)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -644,7 +644,7 @@ Mixjs.interface = function() {
             obj[prop] = base[prop];
         }
     }
-    Mixjs.__interface__ = obj;
+    this.__interface__ = obj;
     
     return this;
 };
