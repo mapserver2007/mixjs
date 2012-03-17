@@ -131,3 +131,17 @@ Mixjs.module("Feature", scope, {
         return "garake-";
     }
 });
+
+Mixjs.interface(Iphone).module("Iphone4s", {
+    category: "AdvancedSmartPhone",
+    getAppName: function() {
+        return "iBook";
+    }
+});
+
+Mixjs.interface(Iphone, Feature).module("Iphone5", {
+    category: "SuperAdvancedSmartPhone",
+    getAppName: function() {
+        return "Siri";
+    }
+});

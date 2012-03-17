@@ -1,10 +1,5 @@
 module("mix.js");
 
-test("Mixjs.module()でmixメソッドが追加されること", function() {
-    Mixjs.module("obj", {})
-    deepEqual(obj.hasOwnProperty("mix"), true, "mixメソッドが追加されること");
-});
-
 test("Mix-inができること", function() {
     var obj = Iphone.mix(Telephone);
     deepEqual(obj.getPhoneName(), "iphone", "子オブジェクトにアクセスできること");
@@ -787,4 +782,30 @@ test("予約済みメソッドに対してはフックできないこと", funct
         deepEqual(message, "'" + prohibits[i] + "' can't be hooking.", "Mixjs予約済みプロパティ「" + prohibits[i] + "」に対してはフックはできない");
         message = "";
     }
+});
+
+test("Interfaceにモジュールを指定してモジュール定義ができること", function() {
+    var obj = Iphone4s;
+    deepEqual(obj.hasOwnProperty("getPhoneOS"), true, "Iphone#getPhoneOSを実装している");
+    deepEqual(obj.category, "AdvancedSmartPhone", "Interfaceのプロパティをモジュールに定義したプロパティで上書きされる");
+});
+
+test("Interfaceに複数モジュールを指定してモジュール定義ができること", function() {
+    var obj = Iphone5;
+    deepEqual(obj.hasOwnProperty("getPhoneOS"), true, "Iphone#getPhoneOSを実装している");
+    deepEqual(obj.hasOwnProperty("setPhoneType"), true, "Feature#setPhoneTypeを実装している");
+    deepEqual(obj.category, "SuperAdvancedSmartPhone", "Interfaceのプロパティをモジュールに定義したプロパティで上書きされる");
+});
+
+test("引数にMixjsモジュール以外のオブジェクトを指定した場合、例外が発生すること", function() {
+    var scope = {}, message;
+    try {
+        Mixjs.interface(scope).module("Test11", scope, {
+            type: "LL"
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    deepEqual(message, "Arguments must be mixjs module object.", "Mixjs#interfaceにMixjsオブジェクト意外を渡すと例外");
 });
