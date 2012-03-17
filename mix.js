@@ -327,8 +327,7 @@ var isIncludeError = function(obj) {
  */
 var implement = function(base, module) {
     for (var prop in module) if (module.hasOwnProperty(prop)) {
-            base[prop] = module[prop];
-        }
+        base[prop] = module[prop];
     }
 }
 
@@ -394,7 +393,7 @@ Mixjs.module = function() {
                 throw new Error("'" + prop + "' can't be defined.");
             }
         }
-        if (prop === "include") {
+        if (prop === 'include') {
             if (base[prop] instanceof Array) {
                 for (i = 0, len = base[prop].length; i < len; i++) {
                     if (isIncludeError(base.include[i])) {
@@ -642,8 +641,7 @@ Mixjs.interface = function() {
             throw new Error("Arguments must be mixjs module object.");
         }
         for (var prop in base) if (inArray(prop, prohibits) === -1) {
-                obj[prop] = base[prop];
-            }
+            obj[prop] = base[prop];
         }
     }
     Mixjs.__interface__ = obj;
