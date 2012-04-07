@@ -809,3 +809,14 @@ test("引数にMixjsモジュール以外のオブジェクトを指定した場
     }
     deepEqual(message, "Arguments must be mixjs module object.", "Mixjs#interfaceにMixjsオブジェクト意外を渡すと例外");
 });
+
+test("無名関数でラップせずに関数をイベントに渡したとき、レシーバが特定できずに例外が発生すること", function() {
+    var message;
+    try {
+        Galaxy.phoneCall();
+    }
+    catch (e) {
+        message = e.message;
+    }
+    deepEqual(message, "Unknown properties of receiver: pushNumber", "イベントに直接関数を渡すとレシーバが特定できない");
+});

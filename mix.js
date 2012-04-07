@@ -1,6 +1,6 @@
 /**
  * mix.js
- * version: 0.5.1 (2012/03/17)
+ * version: 0.5.2 (2012/04/07)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -203,6 +203,13 @@ var pushHookStack = function(receiver, prop, callback, isChain) {
 var methodHook = function(prop, f) {
     return function() {
         var self = this, target = this;
+        
+        // レシーバが取得できない場合は例外を出力
+        if (!isMixjsModule(self)) {
+            console.log(self)
+            throw new Error("Unknown properties of receiver: " + prop);
+        }
+        
         if (isIE678) {
             // IE678の場合はプロトタイプチェーンで辿れないので
             // 明示的に始祖まで辿る
@@ -329,7 +336,7 @@ var implement = function(base, module) {
     for (var prop in module) if (module.hasOwnProperty(prop)) {
         base[prop] = module[prop];
     }
-}
+};
 
 /**
  * モジュールを定義する

@@ -145,3 +145,15 @@ Mixjs.interface(Iphone, Feature).module("Iphone5", {
         return "Siri";
     }
 });
+
+Mixjs.module("Galaxy", {
+    alert: function(func) {
+        func.call();
+    },
+    pushNumber: function() {
+        return "push 110";
+    },
+    phoneCall: function() {
+        this.alert(this.pushNumber);
+    }
+});
