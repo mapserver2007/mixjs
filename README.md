@@ -253,6 +253,46 @@ mix.jsで使用している名前空間「Mixjs」はグローバル変数とし
 * \_\_hookStack\_\_
 
 ***
+###メソッド呼び出しにおける制約
+mix.jsにより定義した各メソッドはフック可能状態になっています。これが影響しメソッド呼び出し時に制約が生じます。  
+引数に関数を渡す場合、以下の方法を取る必要があります。
+
+    Mixjs.module("Iphone", {
+        click: function(func) {
+            func(); // ← このようにしない(例外が発生)
+            func.call(this); // ← こうする
+        },
+        name: function() {}
+    });
+
+    var obj = Iphone.mix(Feature);
+    obj.click(obj.name); // Iphone#clickにIphone#name(関数)を渡す
+
+または、以下のようにします。
+
+    Mixjs.module("Iphone", {
+        click: function(func) {
+            func(); // ← このようにしてもよい
+            func.call(this); // ← このようにしてもよい
+        },
+        name: function() {}
+    });
+
+    var obj = Iphone.mix(Feature);
+    obj.click(function() {
+        obj.name();  // Iphone#clickに無名関数でラップしたIphone#nameを渡す
+    });
+
+引数に関数を渡し、呼び出し先でその関数を実行する場合、レシーバを明示的に指定するか(前者)、無名関数でラップすることでレシーバをmix.js内部で特定できる状態(後者)にして下さい。
+この問題は、イベント処理などでよく発生すると思われます。例えば、jQueryのclickメソッドなどでは、上記の後者のパターンを実施してください。
+    
+    var obj = Iphone.mix(Feature);
+    // $("#container").click(obj.name); ← 例外が発生
+    $("#container").click(function() {
+        obj.name();
+    });
+
+***
 ###モジュールMix-in時の注意
 同じモジュールをMix-inすると、エラーは発生しませんがMix-inされません。
     
@@ -283,7 +323,6 @@ mix.js用の機能拡張モジュールが予め用意されています(mix.mod
 * Cookie(cookie機能を提供)
 * Design(デザインに関するモジュールを提供)
 * Http(HTTP通信関連機能を提供)
-* XdomainHttp(クロスドメインHTTP機能を提供)
 
 ##License
 Licensed under the MIT

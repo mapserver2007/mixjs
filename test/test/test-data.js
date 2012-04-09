@@ -148,12 +148,24 @@ Mixjs.interface(Iphone, Feature).module("Iphone5", {
 
 Mixjs.module("Galaxy", {
     alert: function(func) {
-        func.call();
+        return func.call();
+    },
+    alert2: function(func) {
+        return func.call(this);
     },
     pushNumber: function() {
         return "push 110";
     },
     phoneCall: function() {
-        this.alert(this.pushNumber);
+        return this.alert(this.pushNumber);
+    },
+    phoneCallOk1: function() {
+        return this.alert2(this.pushNumber);
+    },
+    phoneCallOk2: function() {
+        var self = this;
+        return this.alert(function() {
+            return self.pushNumber();
+        });
     }
 });

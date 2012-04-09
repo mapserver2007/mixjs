@@ -206,7 +206,6 @@ var methodHook = function(prop, f) {
         
         // レシーバが取得できない場合は例外を出力
         if (!isMixjsModule(self)) {
-            console.log(self)
             throw new Error("Unknown properties of receiver: " + prop);
         }
         

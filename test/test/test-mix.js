@@ -810,7 +810,12 @@ test("引数にMixjsモジュール以外のオブジェクトを指定した場
     deepEqual(message, "Arguments must be mixjs module object.", "Mixjs#interfaceにMixjsオブジェクト意外を渡すと例外");
 });
 
-test("無名関数でラップせずに関数をイベントに渡したとき、レシーバが特定できずに例外が発生すること", function() {
+test("無名関数でラップまたは明示的にレシーバを指定してcallしたとき、正常に実行出来ること", function() {
+    deepEqual(Galaxy.phoneCallOk1(), "push 110", "明示的にレシーバを指定するときは正常に実行出来る");
+    deepEqual(Galaxy.phoneCallOk2(), "push 110", "無名関数でラップしたときは正常に実行出来る");
+});
+
+test("無名関数でラップせずに引数に関数を指定したとき、レシーバが特定できずに例外が発生すること", function() {
     var message;
     try {
         Galaxy.phoneCall();
