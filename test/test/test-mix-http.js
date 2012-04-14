@@ -7,13 +7,13 @@ asyncTest("JSONPが実行出来ること", function() {
         url: "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/",
         params: {},
         args: {dataType: "jsonp"},
-        successCallback: function(data) {
+        success: function(data) {
             setTimeout(function() {
                 start();
                 deepEqual(typeof data, "object", "JSONPを実行してデータが取得できる");
             }, 1000);
         },
-        errorCallback: function() {
+        error: function() {
             setTimeout(function() {
                 start();
                 ok(false, "JSONPが失敗");
@@ -29,13 +29,13 @@ asyncTest("JSONPでエラーが起きても処理が止まらないこと", func
         url: "http://localhost:8080/latest.json",
         params: {},
         args: {dataType: "jsonp"},
-        successCallback: function(data) {
+        success: function(data) {
             setTimeout(function() {
                 start();
                 ok(false, "JSONPは成功しない");
             }, 1000);
         },
-        errorCallback: function(errorData) {
+        error: function(errorData) {
             setTimeout(function() {
                 start();
                 deepEqual(errorData, null, "エラーが発生してもコールバック実行が可能");
@@ -51,13 +51,13 @@ asyncTest("タイムアウトを設定してJSONPが正常に実行できたと�
         url: "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/",
         params: {},
         args: {dataType: "jsonp", timeout: 3000},
-        successCallback: function(data) {
+        success: function(data) {
             setTimeout(function() {
                 start();
                 deepEqual(typeof data, "object", "タイムアウトを設定しても正常実行されればエラーにならない");
             }, 1000);
         },
-        errorCallback: function() {
+        error: function() {
             setTimeout(function() {
                 start();
                 ok(false, "意図せずタイムアウト処理が実行される");
@@ -73,13 +73,13 @@ asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき�
         url: "http://localhost:8080/latest.json",
         params: {},
         args: {dataType: "jsonp", timeout: 10},
-        successCallback: function(data) {
+        success: function(data) {
             setTimeout(function() {
                 start();
                 ok(false, "JSONPは成功しない");
             }, 1000);
         },
-        errorCallback: function(errorData) {
+        error: function(errorData) {
             setTimeout(function() {
                 start();
                 deepEqual(errorData, null, "タイムアウトが発生してもコールバック実行が可能");
@@ -96,18 +96,88 @@ asyncTest("キャッシュを有効にしたとき、データがキャッシュ
         url: url,
         params: {},
         args: {dataType: "jsonp", cache: true},
-        successCallback: function(data) {
+        success: function(data) {
             setTimeout(function() {
                 start();
                 deepEqual(typeof data, "object", "1回目は通信して取得する");
                 deepEqual(typeof obj.getCache(url), "object", "キャッシュデータが保存されていること");
             }, 1000);
         },
-        errorCallback: function(errorData) {
+        error: function(errorData) {
             setTimeout(function() {
                 start();
                 ok(false, "キャッシュ処理が失敗");
             }, 1000);
+        }
+    });
+});
+
+asyncTest("beforeを指定した場合、通常のAjax処理の前に任意の処理が実行されること(要PHP)", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http, Cache);
+    var isBeforeExecute = false;
+    obj.xhr({
+        url: "ajax.php",
+        args: {dataType: "json"},
+        success: function(data) {
+            setTimeout(function() {
+                start();
+                ok(isBeforeExecute, "Ajax処理実行前にbefore処理を実行できる");
+            }, 1000);
+        },
+        before: function() {
+            isBeforeExecute = true;
+        }
+    });
+});
+
+asyncTest("afterを指定した場合、通常のAjax処理の後に任意の処理が実行されること(要PHP)", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http, Cache);
+    var isAfterExecute = false;
+    obj.xhr({
+        url: "ajax.php",
+        args: {dataType: "json"},
+        success: function(data) {
+            isAfterExecute = true;
+            start();
+        },
+        after: function() {
+            ok(isAfterExecute, "Ajax処理実行後にafter処理を実行できる");
+        }
+    });
+});
+
+asyncTest("beforeを指定した場合、JSONP処理の前に任意の処理が実行されること", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http, Cache);
+    var isBeforeExecute = false;
+    obj.xhr({
+        url: "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/",
+        args: {dataType: "jsonp"},
+        success: function(data) {
+            isAfterExecute = true;
+            start();
+        },
+        after: function() {
+            ok(isAfterExecute, "JSONP処理実行前にbefore処理を実行できる");
+        }
+    });
+});
+
+asyncTest("afterを指定した場合、JSONP処理の後に任意の処理が実行されること", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http, Cache);
+    var isAfterExecute = false;
+    obj.xhr({
+        url: "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/",
+        args: {dataType: "jsonp"},
+        success: function(data) {
+            isAfterExecute = true;
+            start();
+        },
+        after: function() {
+            ok(isAfterExecute, "JSONP処理実行後にafter処理を実行できる");
         }
     });
 });

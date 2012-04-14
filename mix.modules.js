@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.17 (2012/03/01)
+ * version: 0.1.18 (2012/04/14)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -15,7 +15,7 @@ Mixjs.module("Utils", {
     /**
      * jQueryバージョン
      */
-    latestJQueryVersion_: "1.7.1",
+    latestJQueryVersion_: "1.7.2",
 
     /**
      * ホスティングjQueryを開く
@@ -35,6 +35,7 @@ Mixjs.module("Utils", {
      * @param callback コールバック関数
      */
     loadScript: function(url, callback) {
+        console.log(url)
         if (!this.isLoadedScript(url)) {
             var script = document.createElement("script"),
             body = document.getElementsByTagName("html")[0];
@@ -526,82 +527,82 @@ Mixjs.module("Cache", {
  * HTTPモジュール
  */
 Mixjs.module("Http", {
-    /** 依存ライブラリをインクルード */
+    /** 依存ライブラリ */
     include: Utils,
 
     /**
      * 非同期通信を実行する
-     * @param options.url              送信先URL
-     * @param options.params           送信パラメータ
-     * @param options.args             通信パラメータ
-     * @param options.successCallback  成功時コールバック関数
-     * @param options.errorCallback    失敗時コールバック関数
-     * @param options.startFunc        処理開始前に実行する関数
-     * @param options.endFunc          処理完了後に実行する関数
+     * @param options オプション
      */
     xhr: function(options) {
-        var self = this;
-        var url              = options.url,
-            params           = options.params || {},
-            args             = options.args || {},
-            successCallback  = options.successCallback,
-            errorCallback    = options.errorCallback;
-
-        // JSONPの場合はmix.js独自処理を実行
+        this.options = options;
+        var args = options.args || {};
         if (args.dataType === "jsonp") {
             this.jsonp(options);
         }
         else {
-            this.options = options;
-            this.start();
-
-            this.onLoadJQuery(function() {
-                // クロスドメイン通信
-                if (args.xdomain === true) {
-                    if (!self.has(XdomainHttp)) {
-                        self.mix(XdomainHttp).parent.xhr(options);
-                    }
-                }
-                else {
-                    $.ajax({
-                        type: args.type || "post",
-                        dataType: args.dataType || "json",
-                        data: params,
-                        cache: args.cache || true,
-                        url: url,
-                        success: function(data, dataType) {
-                            self.success(successCallback, data, args.args);
-                        },
-                        error: function(XMLHttpRequest, textStatus, errorThrown) {
-                            self.error(errorCallback, textStatus, errorThrown);
-                        }
-                    });
-                }
-            });
+            this.ajax();
         }
     },
-
+    
+    /**
+     * 非同期通信を実行する
+     * @param options.url     送信先URL
+     * @param options.params  送信パラメータ
+     * @param options.args    通信パラメータ
+     * @param options.success 成功時コールバック関数
+     * @param options.error   失敗時コールバック関数
+     * @param options.before  処理開始前に実行する関数
+     * @param options.after   処理完了後に実行する関数
+     */
+    ajax: function() {
+        var self = this;
+        var url              = this.options.url,
+            params           = this.options.params || {},
+            args             = this.options.args || {},
+            successCallback  = this.options.success,
+            errorCallback    = this.options.error;
+        
+        this.onLoadJQuery(function() {
+            self.before();
+            $.ajax({
+                type: args.type || "post",
+                dataType: args.dataType || "json",
+                data: params,
+                cache: args.cache || true,
+                url: url,
+                success: function(data, dataType) {
+                    self.success(successCallback, data, args.args);
+                    self.after();
+                },
+                error: function(XMLHttpRequest, textStatus, errorThrown) {
+                    self.error(errorCallback, textStatus, errorThrown);
+                    self.after();
+                }
+            });
+        });
+    },
+    
     /**
      * エラー処理可能なJSONPを実行する
-     * @param options.url              送信先URL
-     * @param options.params           送信パラメータ
-     * @param options.args             通信パラメータ
-     * @param options.successCallback  成功時コールバック関数
-     * @param options.errorCallback    失敗時コールバック関数
-     * @param options.startFunc        処理開始前に実行する関数
-     * @param options.endFunc          処理完了後に実行する関数
+     * @param options.url     送信先URL
+     * @param options.params  送信パラメータ
+     * @param options.args    通信パラメータ
+     * @param options.success 成功時コールバック関数
+     * @param options.error   失敗時コールバック関数
+     * @param options.before  処理開始前に実行する関数
+     * @param options.after   処理完了後に実行する関数
      */
     jsonp: function(options) {
         var self = this;
         var url              = options.url,
             params           = options.params || {},
             args             = options.args || {},
-            successCallback  = options.successCallback,
-            errorCallback    = options.errorCallback;
+            successCallback  = options.success,
+            errorCallback    = options.error;
 
-        this.options = options;
-        this.start();
-
+        this.before();
+            
         var jsonpCallback = args.jsonp || "callback";
         params[jsonpCallback] = "jsonp" + (~~(new Date() / 1000));
 
@@ -629,6 +630,7 @@ Mixjs.module("Http", {
             else if (typeof errorCallback !== "undefined") {
                 self.error(errorCallback, null, args.args);
             }
+            self.after();
             remove();
         };
 
@@ -645,6 +647,8 @@ Mixjs.module("Http", {
                         self.error(errorCallback, null, args);
                     }
                     remove();
+                    self.after();
+                    return;
                 }
             }, args.timeout)
         }
@@ -696,7 +700,7 @@ Mixjs.module("Http", {
             doc.close();
         }
     },
-
+    
     /**
      * 通信後のコールバックを実行する
      * @param callback コールバック関数名
@@ -706,10 +710,8 @@ Mixjs.module("Http", {
     callbackCaller: function(callback, response, args) {
         if (typeof callback === "function") {
             callback.call(this, response, args);
-            this.end();
         }
         else {
-            this.end();
             throw new Error(response.toString());
         }
     },
@@ -748,141 +750,18 @@ Mixjs.module("Http", {
     /**
      * 通信開始前に処理を実行する
      */
-    start: function() {
-        this.functionCaller(this.options.startFunc, this.options.args);
+    before: function() {
+        if (typeof this.options.before === 'function') {
+            this.functionCaller(this.options.before, this.options.args);
+        }
     },
 
     /**
      * 通信終了後に処理を実行する
      */
-    end: function() {
-        this.functionCaller(this.options.endFunc, this.options.args);
-    }
-});
-
-/**
- * クロスドメインHTTPモジュール
- */
-Mixjs.module("XdomainHttp", {
-    include: Http,
-
-    /** xdomain-ajax用ライブラリ */
-    xdomainAjaxLib: "https://raw.github.com/jamespadolsey/jQuery-Plugins/master/cross-domain-ajax/jquery.xdomainajax.js",
-
-    /**
-     * jQueryが無い場合は読み込んでから処理を実行する
-     * @param function 処理する関数
-     */
-    xhr: function(options) {
-        // 継承済みの場合は基底を参照する
-        var self = this.base || this;
-        var url              = options.url,
-            params           = options.params || {},
-            args             = options.args || {},
-            successCallback  = options.successCallback,
-            errorCallback    = options.errorCallback;
-
-        self.options = options;
-        self.start();
-
-        self.onLoadJQuery(function() {
-            $.extend(options, {
-                type: "get",
-                dataType: "html",
-                success: function(data, dataType) {
-                    try {
-                        // dataTypeがjson場合はレスポンスを加工する
-                        if (/^json$/i.test(args.dataType)) {
-                            if (/<p>(.*)<\/p>/.test(data.responseText)) {
-                                var json = $.parseJSON(RegExp.$1);
-                                self.success(successCallback, json, args.args);
-                            }
-                            else {
-                                throw new Error("Parse json failure: " + url);
-                            }
-                        }
-                        // それ以外はHTMLとして処理
-                        else {
-                            if (/<body.*?>([\s\S]*)<\/body>/i.test(data.responseText)) {
-                                var html = $.trim(RegExp.$1.replace(/[\r\n\t]/g, ''));
-                                self.success(successCallback, html, args.args);
-                            }
-                            else {
-                                throw new Error("Parse html failure: " + url);
-                            }
-                        }
-                    }
-                    catch (e) {
-                        self.error(errorCallback, e.message);
-                    }
-                }
-            });
-
-            self.loadScript(self.xdomainAjaxLib, function() {
-                $.ajax(options);
-            });
-        });
-    },
-
-    /**
-     * 通信後のコールバックを実行する
-     * @param callback コールバック関数名
-     * @param response レスポンス
-     * @param args     コールバック関数に渡す引数
-     */
-    callbackCaller: function(callback, response, args) {
-        if (typeof callback === "function") {
-            callback.call(this, response, args);
-            this.end();
+    after: function() {
+        if (typeof this.options.after === 'function') {
+            this.functionCaller(this.options.after, this.options.args);
         }
-        else {
-            this.end();
-            throw new Error(response.toString());
-        }
-    },
-
-    /**
-     * 指定した関数を実行する
-     * @param f    関数名
-     * @param args 関数に渡す引数
-     */
-    functionCaller: function(f, args) {
-        if (typeof f === "function") {
-            f.call(null, args);
-        }
-    },
-
-    /**
-     * 通信成功後のコールバックを実行する
-     * @param callback コールバック関数名
-     * @param response レスポンス
-     * @param args     コールバック関数に渡す引数
-     */
-    success: function(callback, response, args) {
-        this.callbackCaller(callback, response, args);
-    },
-
-    /**
-     * 通信失敗後のコールバックを実行する
-     * @param callback コールバック関数名
-     * @param response レスポンス
-     * @param args     コールバック関数に渡す引数
-     */
-    error: function(callback, response, args) {
-        this.callbackCaller(callback, response, args);
-    },
-
-    /**
-     * 通信開始前に処理を実行する
-     */
-    start: function() {
-        this.functionCaller(this.options.startFunc, this.options.args);
-    },
-
-    /**
-     * 通信終了後に処理を実行する
-     */
-    end: function() {
-        this.functionCaller(this.options.endFunc, this.options.args);
     }
 });
