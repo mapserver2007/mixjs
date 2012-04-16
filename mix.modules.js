@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.18 (2012/04/14)
+ * version: 0.1.19 (2012/04/16)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -19,8 +19,8 @@ Mixjs.module("Utils", {
 
     /**
      * ホスティングjQueryを開く
-     * @param callback コールバック関数
-     * @param optVersion バージョン
+     * @param {Function} callback コールバック関数
+     * @param {String} optVersion バージョン
      */
     loadJQuery: function(callback, optVersion) {
         var url = "https://ajax.googleapis.com/ajax/libs/jquery/"
@@ -31,11 +31,10 @@ Mixjs.module("Utils", {
 
     /**
      * scriptファイルを読み込む
-     * @param url scriptファイルパスまたはURL
-     * @param callback コールバック関数
+     * @param {String} url scriptファイルパスまたはURL
+     * @param {Function} callback コールバック関数
      */
     loadScript: function(url, callback) {
-        console.log(url)
         if (!this.isLoadedScript(url)) {
             var script = document.createElement("script"),
             body = document.getElementsByTagName("html")[0];
@@ -62,7 +61,7 @@ Mixjs.module("Utils", {
     /**
      * jQueryが無い場合は読み込んでから処理を実行する
      * 読み込み済みの場合はそのまま関数を実行する
-     * @param function 処理する関数
+     * @param {Function} callback 処理する関数
      */
     onLoadJQuery: function(callback) {
         // jQueryが読み込まれていないときはホスティング先から読み込む
@@ -76,8 +75,8 @@ Mixjs.module("Utils", {
 
     /**
      * スクリプトがすでに読み込まれているかどうか
-     * @param path ファイルパス
-     * @return 読み込まれていればtrue
+     * @param {String} path ファイルパス
+     * @return {Boolean}
      */
     isLoadedScript: function(path) {
         var script = document.getElementsByTagName("script");
@@ -91,7 +90,7 @@ Mixjs.module("Utils", {
 
     /**
      * Getterメソッドを動的に定義する
-     * @param constants 定義に必要なハッシュ
+     * @param {Object} constants 定義に必要なハッシュ
      */
     generateGetter: function(constants) {
         var createMethodName = function(str) {
@@ -117,9 +116,9 @@ Mixjs.module("Utils", {
     /**
      * 昇順ソートする
      * 要素がHashの場合は指定キーで昇順ソートする
-     * @param ary 配列
-     * @param key ソートキー
-     * @return ソート済みデータ
+     * @param {Array} ary 配列
+     * @param {String} key ソートキー
+     * @return {Array} ソート済みデータ
      * @example
      *  [{name: 'a'}, {name: 'c'}, {name: 'b'}] # 要素がハッシュの場合
      *  -> [{name: 'a'}, {name: 'b'}, {name: 'c'}]
@@ -141,7 +140,7 @@ Mixjs.module("Utils", {
     /**
      * 降順ソートする
      * 要素がHashの場合は指定キーで降順ソートする
-     * @return ソート済みデータ
+     * @return {Array} ソート済みデータ
      */
     descSort: function(data, key) {
         return this.ascSort(data, key).reverse();
@@ -154,9 +153,10 @@ Mixjs.module("Utils", {
 Mixjs.module("Cookie", {
     /**
      * Cookieを設定、取得する
-     * @param key Cookieのキー
-     * @param value Cookieの値
-     * @param options Cookieの設定
+     * @param {String} key Cookieのキー
+     * @param {String} value Cookieの値
+     * @param {Object} options Cookieの設定
+     * @returns {String}
      * @example
      *  {expires: {day: 1, hour: 1, min: 1, sec: 1}
      *   domain: "www.yahoo.co.jp"}
@@ -173,8 +173,8 @@ Mixjs.module("Cookie", {
 
     /**
      * Cookieを設定する
-     * @param key Cookieのキー
-     * @param value Cookieの値
+     * @param {String} key Cookieのキー
+     * @param {String} value Cookieの値
      */
     setCookie: function(key, value) {
         var options = this.options_;
@@ -245,7 +245,7 @@ Mixjs.module("Cookie", {
 
     /**
      * Cookieを取得する
-     * @param key Cookieのキー
+     * @param {String} key Cookieのキー
      */
     getCookie: function(key) {
         if (document.cookie && document.cookie !== "") {
@@ -272,7 +272,7 @@ Mixjs.module("Design", {
 
     /**
      * ローディングに使用する画像の幅、高さを設定する
-     * @param img 画像オブジェクト
+     * @param {Object} img 画像オブジェクト
      */
     setFilterImageInfo: function(img) {
         var info = {};
@@ -295,8 +295,8 @@ Mixjs.module("Design", {
 
     /**
      * 指定した領域にローディングフィルタをかける
-     * @param config フィルタ設定
-     * @param optFilterId フィルタID
+     * @param {Object} config フィルタ設定
+     * @param {String} optFilterId フィルタID
      */
     showFilter: function(config, optFilterId) {
         var self = this;
@@ -417,7 +417,7 @@ Mixjs.module("Design", {
 
     /**
      * ローディングフィルタを消去する
-     * @param optFilterId フィルタID
+     * @param {String} optFilterId フィルタID
      */
     hideFilter: function(optFilterId) {
         var _filter = document.getElementById(optFilterId || this.filterId);
@@ -433,7 +433,7 @@ Mixjs.module("Cache", {
 
     /**
      * ミリ秒まで含んだUnixTime*1000の値を返却する
-     * @return UnixTime
+     * @return {Number} UnixTime
      */
     getCurrentDate: function() {
         return new Date() / 1e3 * 1000;
@@ -441,8 +441,8 @@ Mixjs.module("Cache", {
 
     /**
      * Cacheキーを生成して返却する
-     * @param key キャッシュキー
-     * @param optExpore 期限オブジェクト
+     * @param {String} key キャッシュキー
+     * @param {Object} optExpore 期限オブジェクト
      */
     createKey: function(key, optExpire) {
         if (typeof optExpire === "undefined") {
@@ -475,9 +475,9 @@ Mixjs.module("Cache", {
 
     /**
      * Cacheを設定する
-     * @param key キャッシュキー
-     * @param content キャッシュするデータ
-     * @param expire 期限オブジェクト
+     * @param {String} key キャッシュキー
+     * @param {Object} content キャッシュするデータ
+     * @param {Object} expire 期限オブジェクト
      */
     setCache: function(key, content, expire) {
         if (typeof this.stack_ === "undefined") {
@@ -532,28 +532,29 @@ Mixjs.module("Http", {
 
     /**
      * 非同期通信を実行する
-     * @param options オプション
+     * @param {Object} options オプション
+     * @example
+     *   options.url     送信先URL
+     *   options.params  送信パラメータ
+     *   options.args    通信パラメータ
+     *   options.success 成功時コールバック関数
+     *   options.error   失敗時コールバック関数
+     *   options.before  処理開始前に実行する関数
+     *   options.after   処理完了後に実行する関数
      */
     xhr: function(options) {
         this.options = options;
         var args = options.args || {};
         if (args.dataType === "jsonp") {
-            this.jsonp(options);
+            this.jsonp();
         }
         else {
             this.ajax();
         }
     },
-    
+
     /**
      * 非同期通信を実行する
-     * @param options.url     送信先URL
-     * @param options.params  送信パラメータ
-     * @param options.args    通信パラメータ
-     * @param options.success 成功時コールバック関数
-     * @param options.error   失敗時コールバック関数
-     * @param options.before  処理開始前に実行する関数
-     * @param options.after   処理完了後に実行する関数
      */
     ajax: function() {
         var self = this;
@@ -562,7 +563,7 @@ Mixjs.module("Http", {
             args             = this.options.args || {},
             successCallback  = this.options.success,
             errorCallback    = this.options.error;
-        
+
         this.onLoadJQuery(function() {
             self.before();
             $.ajax({
@@ -582,27 +583,20 @@ Mixjs.module("Http", {
             });
         });
     },
-    
+
     /**
      * エラー処理可能なJSONPを実行する
-     * @param options.url     送信先URL
-     * @param options.params  送信パラメータ
-     * @param options.args    通信パラメータ
-     * @param options.success 成功時コールバック関数
-     * @param options.error   失敗時コールバック関数
-     * @param options.before  処理開始前に実行する関数
-     * @param options.after   処理完了後に実行する関数
      */
-    jsonp: function(options) {
+    jsonp: function() {
         var self = this;
-        var url              = options.url,
-            params           = options.params || {},
-            args             = options.args || {},
-            successCallback  = options.success,
-            errorCallback    = options.error;
+        var url              = this.options.url,
+            params           = this.options.params || {},
+            args             = this.options.args || {},
+            successCallback  = this.options.success,
+            errorCallback    = this.options.error;
 
         this.before();
-            
+
         var jsonpCallback = args.jsonp || "callback";
         params[jsonpCallback] = "jsonp" + (~~(new Date() / 1000));
 
@@ -700,12 +694,12 @@ Mixjs.module("Http", {
             doc.close();
         }
     },
-    
+
     /**
      * 通信後のコールバックを実行する
-     * @param callback コールバック関数名
-     * @param response レスポンス
-     * @param args     コールバック関数に渡す引数
+     * @param {String} callback コールバック関数名
+     * @param {Object} response レスポンス
+     * @param {Object} args     コールバック関数に渡す引数
      */
     callbackCaller: function(callback, response, args) {
         if (typeof callback === "function") {
@@ -718,8 +712,8 @@ Mixjs.module("Http", {
 
     /**
      * 指定した関数を実行する
-     * @param f    関数名
-     * @param args 関数に渡す引数
+     * @param {Function} f    関数
+     * @param {Object}   args 関数に渡す引数
      */
     functionCaller: function(f, args) {
         if (typeof f === "function") {
@@ -729,9 +723,9 @@ Mixjs.module("Http", {
 
     /**
      * 通信成功後のコールバックを実行する
-     * @param callback コールバック関数名
-     * @param response レスポンス
-     * @param args     コールバック関数に渡す引数
+     * @param {String} callback コールバック関数名
+     * @param {Object} response レスポンス
+     * @param {Object} args     コールバック関数に渡す引数
      */
     success: function(callback, response, args) {
         this.callbackCaller(callback, response, args);
@@ -739,9 +733,9 @@ Mixjs.module("Http", {
 
     /**
      * 通信失敗後のコールバックを実行する
-     * @param callback コールバック関数名
-     * @param response レスポンス
-     * @param args     コールバック関数に渡す引数
+     * @param {String} callback コールバック関数名
+     * @param {Object} response レスポンス
+     * @param {Object} args     コールバック関数に渡す引数
      */
     error: function(callback, response, args) {
         this.callbackCaller(callback, response, args);
