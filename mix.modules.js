@@ -15,7 +15,7 @@ Mixjs.module("Utils", {
     /**
      * jQueryバージョン
      */
-    latestJQueryVersion_: "1.7.2",
+    latestJQueryVersion_: "1.8.3",
 
     /**
      * ホスティングjQueryを開く
@@ -565,21 +565,23 @@ Mixjs.module("Http", {
             errorCallback    = this.options.error;
 
         this.onLoadJQuery(function() {
-            self.before();
             $.ajax({
                 type: args.type || "post",
                 dataType: args.dataType || "json",
                 data: params,
                 cache: args.cache || true,
-                url: url,
-                success: function(data, dataType) {
-                    self.success(successCallback, data, args.args);
-                    self.after();
+                beforeSend: function() {
+                    self.before();
                 },
-                error: function(XMLHttpRequest, textStatus, errorThrown) {
-                    self.error(errorCallback, textStatus, errorThrown);
-                    self.after();
-                }
+                url: url
+            })
+            .done(function(data, dataType) {
+                self.success(successCallback, data, args.args);
+                self.after();
+            })
+            .fail(function(XMLHttpRequest, textStatus, errorThrown) {
+                self.error(errorCallback, textStatus, errorThrown);
+                self.after();
             });
         });
     },

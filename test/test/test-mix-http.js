@@ -156,11 +156,11 @@ asyncTest("beforeを指定した場合、JSONP処理の前に任意の処理が�
         url: "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/",
         args: {dataType: "jsonp"},
         success: function(data) {
-            isAfterExecute = true;
+            ok(isAfterExecute, "JSONP処理実行前にbefore処理を実行できる");
             start();
         },
-        after: function() {
-            ok(isAfterExecute, "JSONP処理実行前にbefore処理を実行できる");
+        before: function() {
+            isAfterExecute = true;
         }
     });
 });
