@@ -338,6 +338,39 @@ var implement = function(base, module) {
 };
 
 /**
+ * 同じオブジェクトかどうか検出する
+ * @param {Object} base Interfaceモジュール
+ * @param {Object} module 定義モジュール
+ */
+var isSameObject = function(o1, o2) {
+    // オブジェクト以外は検査しない
+    if (typeof o1 !== 'object' || typeof o2 !== 'object') {
+        return false;
+    }
+
+    var isSame = false;
+    for (var prop in o1) if (o1.hasOwnProperty(prop)) {
+        // 定義禁止プロパティは検査対象外
+        if (inArray(prop, prohibits) !== -1) {
+            continue;
+        }
+        // IE678の場合、プロパティをすべて子供にコピーするため、
+        // 親とプロパティ比較すると元のモジュールのプロパティと差異が生じる
+        // コピーしたメソッドの場合は、実体メソッドに該当するまで親を参照し続ける
+        if (typeof o1[prop] === 'function' && isCopied(o1[prop])) {
+            continue;
+        }
+        // 親に子と同じメソッドが存在するかどうか(プロトタイプチェーンではなく自身のメソッドに)
+        if (!o2.hasOwnProperty(prop) || o1[prop] !== o2[prop]) {
+            return false;
+        }
+        isSame = true;
+    }
+
+    return isSame;
+};
+
+/**
  * モジュールを定義する
  *
  * 名前空間スコープを指定しない場合、グローバル領域にモジュールが追加される。
@@ -448,6 +481,7 @@ Mixjs.module = function() {
 
     /**
      * モジュールがMix-in済みかどうか検出する
+     * モジュールのMix-in順序は考慮しない
      * @param {MixjsObject} parent 対象オブジェクト
      * @returns {Boolean}
      */
@@ -464,41 +498,90 @@ Mixjs.module = function() {
             }
         }
 
-        // 親の階層を辿り比較する。
-        // 階層が続く限り連続でマッチしない場合は所有していないとみなす
-        var hasModule = false;
-        for (var i = 0; i < parents.length; i++) {
-            parent = parents[i];
-            while (typeof child !== 'undefined') {
-                for (var prop in child) if (child.hasOwnProperty(prop)) {
-                    if (inArray(prop, prohibits) !== -1) {
-                        continue;
-                    }
-                    // IE678の場合、プロパティをすべて子供にコピーするため、
-                    // 親とプロパティ比較すると元のモジュールのプロパティと差異が生じる
-                    // コピーしたメソッドの場合は、実体メソッドに該当するまで親を参照し続ける
-                    if (typeof child[prop] === 'function' && isCopied(child[prop])) {
-                        continue;
-                    }
-                    // 比較対象のモジュール
-                    if (typeof parent[prop] === 'undefined') {
-                        continue;
-                    }
-                    // 同じメソッドを持っているかどうか
-                    if (child[prop] !== parent[prop]) {
-                        hasModule = false;
-                        break;
-                    }
-                    else {
-                        hasModule = true;
-                    }
-                }
-                if (hasModule) break;
-                child = child['parent'];
+        // 子(自身)がmix-in済みな場合分離する
+        var children = [child];
+        while (child.hasOwnProperty('parent')) {
+            child = child.parent;
+            children.push(child);
+            if (!child.hasOwnProperty('parent')) {
+                break;
             }
         }
 
-        return hasModule;
+        // 子 >= 親でなければ[子has親]の関係は成り立たない
+        // 包含関係にあっても、所有関係になければhasは成り立たないとみなす
+        if (children.length < parents.length) {
+            return false;
+        }
+
+        // 親の階層を辿り比較する。
+        // 子が親のモジュールを完全一致で所有しているかどうかを判断する。
+        // ただしモジュールのInclude順は考慮しない。
+        // [Class1] has [Class2 mix Class1] -> false
+        // [Class2 mix Class1] has [Class1] -> true
+        // [Class2 mix Class1] has [Class1 mix Class2] -> true
+        // [Class2 mix Class1 mix Class3] has [Class1 mix Class2] -> true
+        //var hasModule = false;
+        var hasModuleCount = 0, parentModuleCount = parents.length;
+        for (var j = 0; j < children.length; j++) {
+            child = children[j];
+            for (var i = 0; i < parentModuleCount; i++) {
+                parent = parents[i];
+                //hasModule = isSameObject(child, parent);
+                if (isSameObject(child, parent)) {
+                    hasModuleCount++;
+                }
+            }
+
+            if (hasModuleCount === parentModuleCount) {
+                return true;
+            }
+        }
+
+        return hasModuleCount === parentModuleCount;
+    };
+
+    /**
+     * 同一モジュールかどうか検出する
+     * モジュールのMix-inにも対応
+     * @param {MixjsObject} parent 対象オブジェクト
+     * @returns {Boolean}
+     */
+    core.equal = function(parent) {
+        var child = clone(this);
+
+        // 親がmix-in済みの場合分離する
+        var parents = [parent];
+        while (parent.hasOwnProperty('parent')) {
+            parent = parent.parent;
+            parents.push(parent);
+            if (!parent.hasOwnProperty('parent')) {
+                break;
+            }
+        }
+
+        // 子(自身)がmix-in済みな場合分離する
+        var children = [child];
+        while (child.hasOwnProperty('parent')) {
+            child = child.parent;
+            children.push(child);
+            if (!child.hasOwnProperty('parent')) {
+                break;
+            }
+        }
+
+        // 子 != 親でなければ[子equal親]の関係は成り立たない
+        if (children.length !== parents.length) {
+            return false;
+        }
+
+        for (var i = 0; i < children.length; i++) {
+            if (!isSameObject(children[i], parents[i])) {
+                return false;
+            }
+        }
+
+        return true;
     };
 
     /**

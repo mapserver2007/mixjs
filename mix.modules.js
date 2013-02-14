@@ -114,6 +114,23 @@ Mixjs.module("Utils", {
     },
 
     /**
+     * 空文字かnullかundefinedかどうか判定する
+     * @param {Object} constants 定義に必要なハッシュ
+     */
+    isBlank: function(data) {
+        if (typeof data === 'object') {
+            var isEmpty = true;
+            for (var o in data) { isEmpty = false; }
+            return isEmpty;
+        }
+        else if (typeof data === 'string' || data instanceof Array) {
+            return data.length === 0;
+        }
+
+        return data === null || typeof data === 'undefined';
+    },
+
+    /**
      * 昇順ソートする
      * 要素がHashの場合は指定キーで昇順ソートする
      * @param {Array} ary 配列
@@ -144,6 +161,51 @@ Mixjs.module("Utils", {
      */
     descSort: function(data, key) {
         return this.ascSort(data, key).reverse();
+    },
+
+    /**
+     * バイトサイズを返却する
+     * @param {String} 文字列
+     * @return {Number} バイトサイズ    
+     */
+    bytesize: function(str) {
+        return unescape(encodeURIComponent(str)).length
+    },
+
+    /**
+     * データをシリアライズする
+     * @param {Object} データ
+     * @return {Object} シリアライズデータ
+     */
+    serialize: function(data) {
+        // IE6,7ではjson2.jsが必要
+        if (typeof JSON === 'undefined') {
+            throw new Error("This browser can't use JSON. Please include 'json2.js'.");
+        }
+        // object型以外はシリアライズ不要 
+        if (typeof data !== 'object') {
+            return data;
+        }
+
+        return JSON.stringify(data);
+    },
+
+    /**
+     * データをデシリアライズする
+     * @param {Object} シリアライズデータ
+     * @return {Object} デシリアライズデータ
+     */
+    deserialize: function(data) {
+        // IE6,7ではjson2.jsが必要
+        if (typeof JSON === 'undefined') {
+            throw new Error("This browser can't use JSON. Please include 'json2.js'.");
+        }
+        // object以外はデコードしない
+        if (typeof data === 'object') {
+            data = JSON.parse(data);
+        }
+
+        return data;
     }
 });
 
@@ -151,37 +213,23 @@ Mixjs.module("Utils", {
  * Cookieモジュール
  */
 Mixjs.module("Cookie", {
-    /**
-     * Cookieを設定、取得する
-     * @param {String} key Cookieのキー
-     * @param {String} value Cookieの値
-     * @param {Object} options Cookieの設定
-     * @returns {String}
-     * @example
-     *  {expires: {day: 1, hour: 1, min: 1, sec: 1}
-     *   domain: "www.yahoo.co.jp"}
-     */
-    cookie: function(key, value, options) {
-        this.options_ = options || {};
-        if (typeof value !== "undefined") {
-            this.setCookie(key, value);
-        }
-        else {
-            return this.getCookie(key);
-        }
-    },
+    /** 依存モジュール */
+    include: Utils,
 
     /**
      * Cookieを設定する
      * @param {String} key Cookieのキー
      * @param {String} value Cookieの値
+     * @param {Object|Number} expire 有効期限
+     * @param {String} domain ドメイン
+     * @param {String} path パス
+     * @param {Boolean} isSecure secureマークを付けるかどうか
+     * @return {Boolean} キャッシュ結果
      */
-    setCookie: function(key, value) {
-        var options = this.options_;
-        // 値がnullの場合は有効期限も初期化する
-        if (typeof value === null) {
-            value = "";
-            options.expires = {};
+    setCookie: function(key, value, expire, domain, path, isSecure) {
+        // 値がnull,undefinedの場合はキャッシュしない
+        if (this.isBlank(value)) {
+            return false;
         }
 
         var cookie = [];
@@ -189,33 +237,39 @@ Mixjs.module("Cookie", {
 
         var expireTime = function(expire) {
             var time = 0;
-            for (var term in expire) {
-                switch (term) {
-                    // 現在よりx日後
-                    case "day":
-                        time += 60 * 60 * 24 * expire[term];
-                        break;
-                    // 現在よりx時間後
-                    case "hour":
-                        time += 60 * 60 * expire[term];
-                        break;
-                    // 現在よりx分後
-                    case "min":
-                        time += 60 * expire[term];
-                        break;
-                    // 現在よりx秒後
-                    case "sec":
-                        time += expire[term];
-                        break;
+            if (typeof expire === 'object') {
+                for (var term in expire) {
+                    switch (term) {
+                        // 現在よりx日後
+                        case "day":
+                            time += 60 * 60 * 24 * expire[term];
+                            break;
+                        // 現在よりx時間後
+                        case "hour":
+                            time += 60 * 60 * expire[term];
+                            break;
+                        // 現在よりx分後
+                        case "min":
+                            time += 60 * expire[term];
+                            break;
+                        // 現在よりx秒後
+                        case "sec":
+                            time += expire[term];
+                            break;
+                    }
                 }
             }
+            else if (typeof expire === 'number') {
+                time = expire;
+            }
+
             return time;
         };
 
         var expireUnixTime = (function(expire) {
             var time = ~~(new Date() / 1000);
             return time + expireTime(expire);
-        })(options.expires);
+        })(expire);
 
         var unixTimeToDate = function(ut, optTimeZone) {
             var tz = optTimeZone || 0;
@@ -224,7 +278,7 @@ Mixjs.module("Cookie", {
             return date;
         };
 
-        if (options.expires) {
+        if (expire) {
             var date;
             if (typeof expireUnixTime === "number") {
                 date = new Date();
@@ -234,13 +288,20 @@ Mixjs.module("Cookie", {
                 throw new Error("Illegal arguments of expires: " + options.expires);
             }
             cookie.push("expires=" + date.toUTCString());
-            cookie.push("max-age=" + expireTime(options.expires));
+            cookie.push("max-age=" + expireTime(expire));
         }
 
-        cookie.push(options.path ? "path=" + options.path : "");
-        cookie.push(options.domain ? "domain=" + options.domain : "");
-        cookie.push(options.secure ? "secure" : "");
-        document.cookie = cookie.join(";");
+        if (path) cookie.push("path=" + path);
+        if (domain) cookie.push("domain=" + domain);
+        if (isSecure) cookie.push("secure");
+
+        var cookieString = cookie.join(";");
+        if (this.bytesize(cookieString) > 4096) {
+            return false;
+        }
+
+        document.cookie = cookieString;
+        return true;
     },
 
     /**
@@ -429,61 +490,19 @@ Mixjs.module("Design", {
  * Cacheモジュール
  */
 Mixjs.module("Cache", {
-    stack_: {},
-
-    /**
-     * ミリ秒まで含んだUnixTime*1000の値を返却する
-     * @return {Number} UnixTime
-     */
-    getCurrentDate: function() {
-        return new Date() / 1e3 * 1000;
-    },
-
-    /**
-     * Cacheキーを生成して返却する
-     * @param {String} key キャッシュキー
-     * @param {Object} optExpore 期限オブジェクト
-     */
-    createKey: function(key, optExpire) {
-        if (typeof optExpire === "undefined") {
-            return key;
-        }
-
-        var expireTime = this.getCurrentDate();
-        for (var term in optExpire) {
-            switch (term) {
-                // 現在よりx日後
-                case "day":
-                    expireTime += 60 * 60 * 24 * optExpire[term];
-                    break;
-                // 現在よりx時間後
-                case "hour":
-                    expireTime += 60 * 60 * optExpire[term];
-                    break;
-                // 現在よりx分後
-                case "min":
-                    expireTime += 60 * optExpire[term];
-                    break;
-                // 現在よりx秒後
-                case "sec":
-                    expireTime += optExpire[term];
-                    break;
-            }
-        }
-        return key + "-" + expireTime;
-    },
+    /** 依存モジュール */
+    include: [Utils, Cookie],
 
     /**
      * Cacheを設定する
      * @param {String} key キャッシュキー
      * @param {Object} content キャッシュするデータ
      * @param {Object} expire 期限オブジェクト
+     * @return {Boolean} キャッシュ結果
      */
     setCache: function(key, content, expire) {
-        if (typeof this.stack_ === "undefined") {
-            this.stack_ = {};
-        }
-        this.stack_[this.createKey(key, expire)] = content;
+        content = this.serialize(content);
+        return this.setCookie(key, this.serialize(content), expire);
     },
 
     /**
@@ -492,34 +511,8 @@ Mixjs.module("Cache", {
      * @return キャッシュデータ
      */
     getCache: function(key) {
-        // keyのsuffixとしてUNIX TIMEが付与されている場合は分離する。
-        var content, expireTime;
-        for (var keyWithExpire in this.stack_) {
-            // keyが先頭で一致した場合、keyとcontentを取り出す
-            if (keyWithExpire.search(key) === 0) {
-                // 期限付きの場合
-                if (/^(.*?)-(\d{13})$/.test(keyWithExpire)) {
-                    key = RegExp.$1;
-                    expireTime = RegExp.$2;
-                    // 期限が切れていないかどうか
-                    if (expireTime >= this.getCurrentDate()) {
-                        content = this.stack_[keyWithExpire];
-                    }
-                    // 期限切れの場合はキャッシュを消す
-                    else {
-                        delete this.stack_[keyWithExpire];
-                    }
-                }
-                // 期限なしの場合
-                else {
-                    key = keyWithExpire;
-                    content = this.stack_[keyWithExpire];
-                }
-                break;
-            }
-        }
-
-        return content;
+        var content = this.getCookie(key);
+        return this.deserialize(content);
     }
 });
 

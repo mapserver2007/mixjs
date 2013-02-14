@@ -172,16 +172,28 @@ test("多重継承済みオブジェクトにMix-inしていないモジュー�
     deepEqual(obj.has(Ipad), false, "Mix-inしていないモジュールは含まれないこと");
 });
 
-test("Mix-inの順序を考慮してhasによる所有判定ができること", function() {
+test("hasによる所有判定ができること", function() {
    var obj = Iphone.mix(Feature).mix(Telephone),
        obj2 = Feature.mix(Telephone);
-   deepEqual(obj.has(obj2), true, "順序を考慮した所有判定ができること");
+   deepEqual(obj.has(obj2), true, "所有判定ができること");
 });
 
-test("Mix-inの順序を考慮しない場合、hasによる所有判定ができないこと", function() {
+test("比較対象のモジュールのほうが多く継承している場合、hasによる所有判定ができないこと", function() {
+   var obj = Iphone.mix(Feature),
+       obj2 = Iphone.mix(Feature).mix(Telephone);
+   deepEqual(obj.has(obj2), false, "比較対象のモジュールのほうが多く継承している場合、所有判定ができないこと");
+});
+
+test("equalによる一致判定ができること", function() {
     var obj = Iphone.mix(Feature).mix(Telephone),
-        obj2 = Telephone.mix(Feature);
-    deepEqual(obj.has(obj2), false, "順序を考慮しない場合、所有判定ができないこと");
+        obj2 = Iphone.mix(Feature, Telephone);
+    deepEqual(obj.equal(obj2), true, "モジュールの一致判定ができること");
+});
+
+test("順序が異なる場合、equalによる一致判定ができないこと", function() {
+    var obj = Iphone.mix(Feature).mix(Telephone),
+        obj2 = Telephone.mix(Feature).mix(Iphone);
+    deepEqual(obj.equal(obj2), false, "順序が異なる場合、モジュールの一致判定ができないこと");
 });
 
 test("同じモジュールはMix-inされないこと", function() {

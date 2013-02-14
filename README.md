@@ -87,8 +87,8 @@ mix.jsではクラスベースの単一継承にあたる処理を「Mix-in」�
 
 Mix-inはmixメソッドを使って行います。Mixjs#moduleで作成したオブジェクトには自動的にmixメソッドが追加されます。  
 Min-inを実行すると親子関係を持ったオブジェクトが作成されます。上記の場合、Iphoneモジュールが子、Featureモジュールが親としたオブジェクトobj1が作成されます。  
-また、mixメソッドはチェーンを使って連続で実行することが可能です。そして、チェーンさせず一気に多重継承させることも可能です。  
-多重継承の場合は、mixメソッドの引数に継承させたいモジュールを列挙します。多重継承させたいモジュールの指定数に制限はありません。 
+また、mixメソッドはチェーンを使って連続で実行することが可能です。そして、チェーンさせず一気に多重継承させることも可能です。多重継承の場合は、mixメソッドの引数に継承させたいモジュールを列挙します。多重継承させたいモジュールの指定数に制限はありません。  
+同じモジュールをMix-inすることは出来ません(「モジュールMix-in時の注意」を参照)。
 
 ***
 ###親を参照する(parent)
@@ -143,7 +143,30 @@ includeによるMix-inは定義したモジュールがあるモジュールに�
         }
     });
 
-内部多重継承したいモジュールをincludeプロパティに配列で指定します。配列として指定したモジュールの順番にMix-inされます。上記の場合、Iphoneの親はFeature、Featureの親はTelephoneとなります。
+内部多重継承したいモジュールをincludeプロパティに配列で指定します。配列として指定したモジュールの順番にMix-inされます。上記の場合、Iphoneの親はFeature、Featureの親はTelephoneとなります。  
+
+***
+###mixとincludeによるMix-in、多重継承の違い
+mixとincludeによるMix-inには以下の違いがあります。  
+    
+    // mix
+    var obj = Module1.mix(Module2, Module1);
+    obj.parent.parent.__moduleName__; // undefined
+
+    // include
+    Mixjs.module("Module1", {
+        include: Module2
+    });
+
+    Mixjs.module("Module2", {
+        include: Module1
+    });
+
+    Module1.parent.parent.__moduleName__; // Module1
+
+mixメソッドでMix-inした場合、重複するModule1はMix-inされません。Module2とModule1に依存関係がないためです。  
+includeメソッドで内部Mix-inした場合、Module1は重複していますが、Module2とModule1に依存関係があるため、Mix-inが実行されます。  
+あらかじめ依存関係が決まっている場合は内部Mix-inを、決まっていない場合はMix-inを使用します。  
 
 ***
 ###Mix-in済みかどうか調べる(has)

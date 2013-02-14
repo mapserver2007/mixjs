@@ -88,30 +88,6 @@ asyncTest("タイムアウトを設定してJSONPでエラーが起きたとき�
     });
 });
 
-asyncTest("キャッシュを有効にしたとき、データがキャッシュされること", function() {
-    Mixjs.module("Test", {});
-    var obj = Test.mix(Http, Cache);
-    var url = "http://s.hatena.ne.jp/blog.json/http://d.hatena.ne.jp/hatenastar/";
-    obj.xhr({
-        url: url,
-        params: {},
-        args: {dataType: "jsonp", cache: true},
-        success: function(data) {
-            setTimeout(function() {
-                start();
-                deepEqual(typeof data, "object", "1回目は通信して取得する");
-                deepEqual(typeof obj.getCache(url), "object", "キャッシュデータが保存されていること");
-            }, 1000);
-        },
-        error: function(errorData) {
-            setTimeout(function() {
-                start();
-                ok(false, "キャッシュ処理が失敗");
-            }, 1000);
-        }
-    });
-});
-
 asyncTest("beforeを指定した場合、通常のAjax処理の前に任意の処理が実行されること(要PHP)", function() {
     Mixjs.module("Test", {});
     var obj = Test.mix(Http, Cache);

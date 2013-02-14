@@ -7,7 +7,7 @@ asyncTest("期限が切れたキャッシュデータは取得できないこと
     obj.setCache(key, value, {sec: expireSec});
     setTimeout(function() {
         start();
-        deepEqual(obj.getCache(key), undefined, "期限切れならばキャッシュデータは取得できない");
+        deepEqual(obj.getCache(key), null, "期限切れならばキャッシュデータは取得できない");
     }, (expireSec + 1) * 1000);
 });
 

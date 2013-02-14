@@ -61,3 +61,13 @@ test("要素がハッシュの配列に対して降順ソートができるこ�
     var sortedAry = obj.descSort(ary, "name");
     deepEqual(sortedAry[0].name, 'c', "降順ソートされること");
 });
+
+test("空の値を判定できること", function() {
+    var obj = Iphone.mix(Utils);
+    deepEqual(obj.isBlank(""), true, "空文字");
+    deepEqual(obj.isBlank([]), true, "空配列");
+    deepEqual(obj.isBlank({}), true, "空ハッシュ");
+    deepEqual(obj.isBlank(null), true, "null");
+    deepEqual(obj.isBlank(), true, "引数なし");
+    deepEqual(obj.isBlank(undefined), true, "undefined");
+});
