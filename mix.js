@@ -522,13 +522,11 @@ Mixjs.module = function() {
         // [Class2 mix Class1] has [Class1] -> true
         // [Class2 mix Class1] has [Class1 mix Class2] -> true
         // [Class2 mix Class1 mix Class3] has [Class1 mix Class2] -> true
-        //var hasModule = false;
         var hasModuleCount = 0, parentModuleCount = parents.length;
         for (var j = 0; j < children.length; j++) {
             child = children[j];
             for (var i = 0; i < parentModuleCount; i++) {
                 parent = parents[i];
-                //hasModule = isSameObject(child, parent);
                 if (isSameObject(child, parent)) {
                     hasModuleCount++;
                 }
