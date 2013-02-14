@@ -270,6 +270,7 @@ mix.jsで使用している名前空間「Mixjs」はグローバル変数とし
 * parent
 * include
 * has
+* equal
 * base
 * hook
 * \_\_moduleName\_\_

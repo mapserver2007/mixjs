@@ -249,6 +249,19 @@ test("モジュールにhasメソッドを定義した場合は例外が発生�
     deepEqual(message, "'has' can't be defined.", "hasメソッドは定義不可");
 });
 
+test("モジュールにequalメソッドを定義した場合は例外が発生すること", function() {
+    var message;
+    try {
+        Mixjs.module("ChinaPad", {
+            equal: function() {}
+        });
+    }
+    catch (e) {
+        message = e.message;
+    }
+    deepEqual(message, "'equal' can't be defined.", "equalメソッドは定義不可");
+});
+
 test("モジュールにbaseメソッドを定義した場合は例外が発生すること", function() {
     var message;
     try {
@@ -782,7 +795,7 @@ test("chainフラグを立てて、正規表現によるフックができるこ
 
 test("予約済みメソッドに対してはフックできないこと", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
-    var prohibits = ['mix', 'parent', 'has', 'base', 'hook', '__hookStack__', '__moduleName__'];
+    var prohibits = ['mix', 'parent', 'has', 'equal', 'base', 'hook', '__hookStack__', '__moduleName__'];
     var message;
     for (var i in prohibits) {
         try {

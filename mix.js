@@ -36,6 +36,7 @@ var PROTOTYPE_CHAIN_TOKEN_POSITION = 12;
 var prohibits = ['mix',
                  'parent',
                  'has',
+                 'equal',
                  'base',
                  'hook',
                  '__hookStack__',
