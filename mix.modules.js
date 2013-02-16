@@ -410,6 +410,7 @@ Mixjs.module("Design", {
 
             if (typeof config === "object") {
                 config.color  = config.color || "#ffffff";
+                config.backgroundColor = config.backgroundColor || "#000000";
                 config.transParency = config.transParency || "0.7";
                 config.img = createImgElement(config.img, config.target);
                 config.text = createTextElement(config.text, config.target);
@@ -431,7 +432,7 @@ Mixjs.module("Design", {
 
             var _filter = document.createElement("div");
             _filter.setAttribute("id", filterId);
-            _filter.style.backgroundColor = "#000000";
+            _filter.style.backgroundColor = config.backgroundColor;
             _filter.style.MozOpacity      = config.transParency;
             _filter.style.opacity         = config.transParency;
             _filter.style.filter          = 'alpha(opacity=' + config.transParency * 100 + ')';
@@ -523,6 +524,8 @@ Mixjs.module("Http", {
     /** 依存ライブラリ */
     include: Utils,
 
+    queue_: [],
+
     /**
      * 非同期通信を実行する
      * @param {Object} options オプション
@@ -536,26 +539,31 @@ Mixjs.module("Http", {
      *   options.after   処理完了後に実行する関数
      */
     xhr: function(options) {
-        this.options = options;
+        this.queue_.push(options);
         var args = options.args || {};
         if (args.dataType === "jsonp") {
             this.jsonp();
         }
         else {
-            this.ajax();
+            var deferred = $.Deferred();
+            this.ajax(deferred);
+            return deferred.promise();
         }
     },
 
     /**
      * 非同期通信を実行する
      */
-    ajax: function() {
+    ajax: function(deferred) {
         var self = this;
-        var url              = this.options.url,
-            params           = this.options.params || {},
-            args             = this.options.args || {},
-            successCallback  = this.options.success,
-            errorCallback    = this.options.error;
+        var options          = this.queue_.shift();
+        var url              = options.url,
+            params           = options.params || {},
+            args             = options.args || {},
+            successCallback  = options.success,
+            errorCallback    = options.error,
+            beforeCallback   = options.before,
+            afterCallback    = options.after;
 
         this.onLoadJQuery(function() {
             $.ajax({
@@ -564,17 +572,19 @@ Mixjs.module("Http", {
                 data: params,
                 cache: args.cache || true,
                 beforeSend: function() {
-                    self.before();
+                    self.functionCaller(beforeCallback, args);
                 },
                 url: url
             })
             .done(function(data, dataType) {
                 self.success(successCallback, data, args.args);
-                self.after();
             })
             .fail(function(XMLHttpRequest, textStatus, errorThrown) {
                 self.error(errorCallback, textStatus, errorThrown);
-                self.after();
+            })
+            .always(function() {
+                self.functionCaller(afterCallback, args);
+                deferred.resolve(self);
             });
         });
     },
@@ -584,13 +594,22 @@ Mixjs.module("Http", {
      */
     jsonp: function() {
         var self = this;
-        var url              = this.options.url,
-            params           = this.options.params || {},
-            args             = this.options.args || {},
-            successCallback  = this.options.success,
-            errorCallback    = this.options.error;
+        var options          = this.queue_.pop();
+        var url              = options.url,
+            params           = options.params || {},
+            args             = options.args || {},
+            successCallback  = options.success,
+            errorCallback    = options.error,
+            beforeCallback   = options.before,
+            afterCallback    = options.after;
 
-        this.before();
+        var before = function() {
+            self.functionCaller(beforeCallback, args);
+        };
+
+        var after = function() {
+            self.functionCaller(afterCallback, args);
+        };
 
         var jsonpCallback = args.jsonp || "callback";
         params[jsonpCallback] = "jsonp" + (~~(new Date() / 1000));
@@ -707,12 +726,12 @@ Mixjs.module("Http", {
 
     /**
      * 指定した関数を実行する
-     * @param {Function} f    関数
-     * @param {Object}   args 関数に渡す引数
+     * @param {Function} callback 関数
+     * @param {Object}   args     関数に渡す引数
      */
-    functionCaller: function(f, args) {
-        if (typeof f === "function") {
-            f.call(null, args);
+    functionCaller: function(callback, args) {
+        if (typeof callback === "function") {
+            callback.call(this, args);
         }
     },
 
@@ -734,23 +753,36 @@ Mixjs.module("Http", {
      */
     error: function(callback, response, args) {
         this.callbackCaller(callback, response, args);
-    },
-
-    /**
-     * 通信開始前に処理を実行する
-     */
-    before: function() {
-        if (typeof this.options.before === 'function') {
-            this.functionCaller(this.options.before, this.options.args);
-        }
-    },
-
-    /**
-     * 通信終了後に処理を実行する
-     */
-    after: function() {
-        if (typeof this.options.after === 'function') {
-            this.functionCaller(this.options.after, this.options.args);
-        }
     }
 });
+
+
+Mixjs.module("SyncEvent", {
+
+    include: Utils,
+
+    syncEvent: function() {
+        var _class = function() {};
+        _class.prototype.set = function() {
+            var events = arguments;
+
+
+
+        };
+        _class.prototype.fire = function() {
+
+        };
+    },
+
+    set: function() {
+        var events = arguments;
+    },
+
+    fire: function() {
+
+    }
+
+
+
+});
+

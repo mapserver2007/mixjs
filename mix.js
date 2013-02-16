@@ -1,6 +1,6 @@
 /**
  * mix.js
- * version: 0.5.3 (2013/02/14)
+ * version: 0.5.4 (2013/02/16)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -28,6 +28,12 @@ var PROTOTYPE_CHAIN_TOKEN = 'd945f6fc3d7f10c65ad54a82d7e2a1b8';
  * @type {Number}
  */
 var PROTOTYPE_CHAIN_TOKEN_POSITION = 12;
+
+/**
+ * Mix-in後の自動実行されるメソッド名
+ * @type {String}
+ */
+var INITIALIZE_PROPERTY = 'initialize';
 
 /**
  * 定義禁止のプロパティ名
@@ -590,6 +596,19 @@ Mixjs.module = function() {
      */
     core.mix = (function() {
         /**
+         * コンストラクタを実行する
+         */
+        var constructor = function(self, modules) {
+            // Mix-inしたモジュールのinitializeメソッドを実行
+            for (var i = 0; i < modules.length; i++) {
+                var module = modules[i];
+                if (!self.has(module) && module.hasOwnProperty(INITIALIZE_PROPERTY)) {
+                    module[INITIALIZE_PROPERTY]();
+                }
+            }
+        };
+
+        /**
          * レガシーブラウザ(IE6,7,8)向けMix-in処理
          */
         var legacyMix = function() {
@@ -625,7 +644,7 @@ Mixjs.module = function() {
                                         p = p.parent;
                                     }
                                     return function() {
-                                        "d945f6fc3d7f10c65ad54a82d7e2a1b8";
+                                        PROTOTYPE_CHAIN_TOKEN;
                                         return p[prop].apply(c, arguments);
                                     };
                                 })(p, c, prop);
@@ -657,6 +676,7 @@ Mixjs.module = function() {
                 child = child.parent;
             }
             child.__hookStack__ = {};
+            constructor(this, arguments);
 
             return ancestors[0];
         };
@@ -668,7 +688,7 @@ Mixjs.module = function() {
             var child, i, c, p, obj;
             var modules = [this], ancestors = [];
             modules.push.apply(modules, arguments);
-            
+
             // すべてのモジュールに対して若い世代から順にバラしてancestorsに格納する
             for (i = 0; i < modules.length; i++) {
                 child = modules[i];
@@ -693,15 +713,16 @@ Mixjs.module = function() {
                 ancestors[i-1] = obj;
             }
 
+            constructor(this, arguments);
             core.base = child = ancestors[0];
             core.hook = hook;
-            
+
             return child;
         };
 
         return isIE678 ? legacyMix : modernMix;
     })();
-    
+
     var module = append(core, base);
 
     if (MODULE_DEFINE_WITH_NAME) {
