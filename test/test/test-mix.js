@@ -850,3 +850,8 @@ test("無名関数でラップせずに引数に関数を指定したとき、�
     }
     deepEqual(message, "Unknown properties of receiver: pushNumber", "イベントに直接関数を渡すとレシーバが特定できない");
 });
+
+test("Mix-inしたとき、initializeメソッドが実行されること", function() {
+    var obj = Ubuntu.mix(Fedora);
+    deepEqual(obj.getName(), "fedora", "Mix-inされたモジュールのinitializeメソッドが実行されること");
+});

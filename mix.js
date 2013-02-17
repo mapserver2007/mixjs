@@ -1,6 +1,6 @@
 /**
  * mix.js
- * version: 0.5.4 (2013/02/16)
+ * version: 0.5.5 (2013/02/17)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -598,12 +598,18 @@ Mixjs.module = function() {
         /**
          * コンストラクタを実行する
          */
-        var constructor = function(self, modules) {
+        var constructor = function(self, base, modules) {
             // Mix-inしたモジュールのinitializeメソッドを実行
             for (var i = 0; i < modules.length; i++) {
                 var module = modules[i];
+                var _base = base;
                 if (!self.has(module) && module.hasOwnProperty(INITIALIZE_PROPERTY)) {
-                    module[INITIALIZE_PROPERTY]();
+                    while (typeof _base !== 'undefined') {
+                        if (_base.__moduleName__ === module.__moduleName__) {
+                            _base[INITIALIZE_PROPERTY].call(_base);
+                        }
+                        _base = _base.parent;
+                    }
                 }
             }
         };
@@ -676,7 +682,7 @@ Mixjs.module = function() {
                 child = child.parent;
             }
             child.__hookStack__ = {};
-            constructor(this, arguments);
+            constructor(this, child, arguments);
 
             return ancestors[0];
         };
@@ -713,9 +719,10 @@ Mixjs.module = function() {
                 ancestors[i-1] = obj;
             }
 
-            constructor(this, arguments);
+            
             core.base = child = ancestors[0];
             core.hook = hook;
+            constructor(this, child, arguments);
 
             return child;
         };

@@ -169,3 +169,31 @@ Mixjs.module("Galaxy", {
         });
     }
 });
+
+Mixjs.module("Ubuntu", {
+    initialize: function() {
+        this.name = "ubuntu";
+    },
+    getName: function() {
+        return this.name;
+    }
+});
+
+Mixjs.module("Fedora", {
+    initialize: function() {
+        this.name = "fedora";
+    },
+    getName: function() {
+        return this.name;
+    }
+});
+
+Mixjs.module("Debian", {
+    initialize: function() {
+        this.name = "debian";
+    },
+    getName: function() {
+        return this.name;
+    }
+});
+
