@@ -597,6 +597,9 @@ Mixjs.module = function() {
     core.mix = (function() {
         /**
          * コンストラクタを実行する
+         * @param {MixjsModule} self Mix-in前のモジュール
+         * @param {MixjsModule} base Mix-in済みモジュール
+         * @param {Array} Mix-inするモジュール
          */
         var constructor = function(self, base, modules) {
             // Mix-inしたモジュールのinitializeメソッドを実行
