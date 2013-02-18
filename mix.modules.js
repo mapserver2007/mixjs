@@ -54,6 +54,7 @@ Mixjs.module("Utils", {
                     script.onload = callback;
                 }
             }
+            console.log(script)
             body.appendChild(script);
         }
     },
@@ -603,13 +604,7 @@ Mixjs.module("Http", {
             beforeCallback   = options.before,
             afterCallback    = options.after;
 
-        var before = function() {
-            self.functionCaller(beforeCallback, args);
-        };
-
-        var after = function() {
-            self.functionCaller(afterCallback, args);
-        };
+        this.functionCaller(beforeCallback, args);
 
         var jsonpCallback = args.jsonp || "callback";
         params[jsonpCallback] = "jsonp" + (~~(new Date() / 1000));
@@ -638,7 +633,7 @@ Mixjs.module("Http", {
             else if (typeof errorCallback !== "undefined") {
                 self.error(errorCallback, null, args.args);
             }
-            self.after();
+            self.functionCaller(afterCallback, args);
             remove();
         };
 
@@ -654,8 +649,8 @@ Mixjs.module("Http", {
                     if (typeof errorCallback !== "undefined") {
                         self.error(errorCallback, null, args);
                     }
+                    self.functionCaller(afterCallback, args);
                     remove();
-                    self.after();
                     return;
                 }
             }, args.timeout)

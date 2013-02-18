@@ -597,8 +597,8 @@ Mixjs.module = function() {
     core.mix = (function() {
         /**
          * コンストラクタを実行する
-         * @param {MixjsModule} self Mix-in前のモジュール
-         * @param {MixjsModule} base Mix-in済みモジュール
+         * @param {MixjsObject} self Mix-in前のモジュール
+         * @param {MixjsObject} base Mix-in済みモジュール
          * @param {Array} Mix-inするモジュール
          */
         var constructor = function(self, base, modules) {
@@ -643,7 +643,7 @@ Mixjs.module = function() {
                 // ただし実体をコピーするのではなく、親への参照をラップした関数をコピーする
                 for (;;) {
                     for (var prop in p) if (!c.hasOwnProperty(prop)) {
-                        if (inArray(prop, prohibits) === -1 && !c.hasOwnProperty(prop)) {
+                        if (inArray(prop, prohibits) === -1) {
                             if (typeof p[prop] === 'function') {
                                 c[prop] = (function(p, c, prop) {
                                     // 受け継ぐメソッドの実体レシーバまで辿る

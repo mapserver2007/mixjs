@@ -851,7 +851,29 @@ test("無名関数でラップせずに引数に関数を指定したとき、�
     deepEqual(message, "Unknown properties of receiver: pushNumber", "イベントに直接関数を渡すとレシーバが特定できない");
 });
 
-test("Mix-inしたとき、initializeメソッドが実行されること", function() {
+test("Mix-inしたとき、Mix-inしたモジュールのinitializeメソッドが実行されること", function() {
     var obj = Ubuntu.mix(Fedora);
-    deepEqual(obj.getName(), "fedora", "Mix-inされたモジュールのinitializeメソッドが実行されること");
+    var list = obj.getName();
+    deepEqual(list[0], "fedora", "Mix-inされたモジュールのinitializeメソッドが実行されること");
+});
+
+test("多重継承したとき、継承したモジュールのinitializeメソッドが実行されること", function() {
+    var obj = Ubuntu.mix(Fedora, Debian);
+    var list = obj.getName();
+    console.log(list)
+    deepEqual(list[0], "fedora", "多重継承されたモジュールのinitializeメソッドが実行されること");
+    deepEqual(list[1], "debian", "多重継承されたモジュールのinitializeメソッドが実行されること");
+});
+
+test("内部Mix-inしたとき、Mix-inしたモジュールのinitializeメソッドが実行されること", function() {
+    var obj = Ubuntu.mix(CentOS);
+    var list = obj.getName();
+    deepEqual(list[0], "fedora", "内部Mix-inされたモジュールのinitializeメソッドが実行されること");
+});
+
+test("内部Mix-inしたとき、Mix-inしたモジュールのinitializeメソッドが実行されること", function() {
+    var obj = Ubuntu.mix(RedHat);
+    var list = obj.getName();
+    deepEqual(list[0], "fedora", "内部Mix-inされたモジュールのinitializeメソッドが実行されること");
+    deepEqual(list[1], "debian", "内部Mix-inされたモジュールのinitializeメソッドが実行されること");
 });

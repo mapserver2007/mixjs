@@ -172,28 +172,44 @@ Mixjs.module("Galaxy", {
 
 Mixjs.module("Ubuntu", {
     initialize: function() {
-        this.name = "ubuntu";
+        this.names = this.base.names || [];
+        this.names.push("ubuntu");
     },
     getName: function() {
-        return this.name;
+        return this.names;
     }
 });
 
 Mixjs.module("Fedora", {
     initialize: function() {
-        this.name = "fedora";
+        this.names = this.base.names || [];
+        this.names.push("fedora");
     },
     getName: function() {
-        return this.name;
+        return this.names;
     }
 });
 
 Mixjs.module("Debian", {
     initialize: function() {
-        this.name = "debian";
+        this.names = this.base.names || [];
+        this.names.push("debian");
     },
     getName: function() {
-        return this.name;
+        return this.names;
     }
 });
 
+Mixjs.module("CentOS", {
+    include: Fedora,
+    getName: function() {
+        return this.names;
+    }
+});
+
+Mixjs.module("RedHat", {
+    include: [Fedora, Debian],
+    getName: function() {
+        return this.names;
+    }
+});
