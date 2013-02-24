@@ -149,6 +149,7 @@ test("Mix-in済みオブジェクトの親の親にMix-inしたモジュール�
 
 test("多重継承済みオブジェクトにMix-inしたモジュールが含まれていること", function() {
     var obj = Iphone.mix(Telephone, Android);
+    console.log(obj)
     deepEqual(obj.has(Iphone), true, "子オブジェクトにMix-inモジュールが含まれること");
 });
 
@@ -851,24 +852,47 @@ test("無名関数でラップせずに引数に関数を指定したとき、�
     deepEqual(message, "Unknown properties of receiver: pushNumber", "イベントに直接関数を渡すとレシーバが特定できない");
 });
 
-test("Mix-inしたとき、Mix-inしたモジュールのinitializeメソッドが実行されること", function() {
+test("初めてメソッドが呼ばれたとき、initializeメソッドが実行されること", function() {
+    var obj = SpecialWeek.mix(SundaySilence);
+    deepEqual(obj.getCountry(), "JPN", "Mix-inされたモジュールのinitializeメソッドが実行されること");
+    deepEqual(obj.parent.getCountry(), "USA", "Mix-inされたモジュールのinitializeメソッドが実行されること");
+});
+
+test("intiialize実行後、initialize用にフックした内容がクリアされること", function() {
+    var obj = SpecialWeek.mix(SundaySilence);
+    notDeepEqual(obj.__hookStack__, {}, "Mix-inされたモジュールのinitializeメソッドが実行されること");
+    obj.getCountry();
+    obj.parent.getCountry();
+    deepEqual(obj.__hookStack__, {}, "Mix-inされたモジュールのinitializeメソッドが実行されること");
+});
+
+test("initializeメソッド実行前にフックした処理が、inititalizeメソッド実行後に実行可能なこと", function() {
+    var obj = BuenaVista;
+    var country = null;
+    obj.hook("getCountry", function() {
+        country = "JPN";
+    });
+    obj.getCountry();
+    deepEqual(country, "JPN", "通常のhookが実行されること");
+});
+
+test("Mix-inしたとき、Mix-inしたモジュールのmixedメソッドが実行されること", function() {
     var obj = Ubuntu.mix(Fedora);
     var list = obj.getName();
-    deepEqual(list[0], "fedora", "Mix-inされたモジュールのinitializeメソッドが実行されること");
+    deepEqual(list[0], "fedora", "Mix-inされたモジュールのmixedメソッドが実行されること");
 });
 
-test("多重継承したとき、継承したモジュールのinitializeメソッドが実行されること", function() {
+test("多重継承したとき、継承したモジュールのmixedメソッドが実行されること", function() {
     var obj = Ubuntu.mix(Fedora, Debian);
     var list = obj.getName();
-    console.log(list)
-    deepEqual(list[0], "fedora", "多重継承されたモジュールのinitializeメソッドが実行されること");
-    deepEqual(list[1], "debian", "多重継承されたモジュールのinitializeメソッドが実行されること");
+    deepEqual(list[0], "fedora", "多重継承されたモジュールのmixedメソッドが実行されること");
+    deepEqual(list[1], "debian", "多重継承されたモジュールのmixedメソッドが実行されること");
 });
 
-test("内部Mix-inしたとき、Mix-inしたモジュールのinitializeメソッドが実行されること", function() {
+test("内部Mix-inしたとき、Mix-inしたモジュールのmixedメソッドが実行されること", function() {
     var obj = Ubuntu.mix(CentOS);
     var list = obj.getName();
-    deepEqual(list[0], "fedora", "内部Mix-inされたモジュールのinitializeメソッドが実行されること");
+    deepEqual(list[0], "fedora", "内部Mix-inされたモジュールのmixedメソッドが実行されること");
 });
 
 test("内部Mix-inしたとき、Mix-inしたモジュールのinitializeメソッドが実行されること", function() {

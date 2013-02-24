@@ -170,8 +170,34 @@ Mixjs.module("Galaxy", {
     }
 });
 
-Mixjs.module("Ubuntu", {
+Mixjs.module("SundaySilence", {
     initialize: function() {
+        this.country = "USA";
+    },
+
+    getCountry: function() {
+        return this.country;
+    }
+});
+
+Mixjs.module("SpecialWeek", {
+    initialize: function() {
+        this.country = "JPN";
+    },
+
+    getCountry: function() {
+        return this.country;
+    }
+});
+
+Mixjs.module("BuenaVista", {
+    getCountry: function() {
+        return this.country;
+    }
+});
+
+Mixjs.module("Ubuntu", {
+    mixed: function() {
         this.names = this.base.names || [];
         this.names.push("ubuntu");
     },
@@ -181,7 +207,7 @@ Mixjs.module("Ubuntu", {
 });
 
 Mixjs.module("Fedora", {
-    initialize: function() {
+    mixed: function() {
         this.names = this.base.names || [];
         this.names.push("fedora");
     },
@@ -191,7 +217,7 @@ Mixjs.module("Fedora", {
 });
 
 Mixjs.module("Debian", {
-    initialize: function() {
+    mixed: function() {
         this.names = this.base.names || [];
         this.names.push("debian");
     },

@@ -401,6 +401,46 @@ var isSameObject = function(o1, o2) {
 };
 
 /**
+ * Mixjsオブジェクトを生成する
+ * @param {Object} core Coreモジュール
+ * @param {Object} base 定義モジュール
+ */
+var createModule = function(core, base) {
+    var module = append(core, base);
+    for (var prop in module) {
+        if (module.hasOwnProperty(prop) && inArray(prop, prohibits) === -1 && inArray(prop, reservations) === -1) {
+            module.hook(prop, function() {
+                var hookStack, hookedProp, i;
+                var receiver = this, base = this.base;
+                if (receiver.hasOwnProperty(INITIALIZE_PROPERTY)) {
+                    // initializeメソッドを実行
+                    receiver[INITIALIZE_PROPERTY].apply(receiver, arguments);
+                    // initialize用のhookを全て解除
+                    hookStack = base.__hookStack__;
+                    for (hookedProp in hookStack) if (hookStack.hasOwnProperty(hookedProp)) {
+                        for (i = 0; i < hookStack[hookedProp].length; i++) {
+                            if (receiver.__moduleName__ === hookStack[hookedProp][i].receiver.__moduleName__) {
+                                // initializeを実行したレシーバに属するhookを解除する
+                                // 0番目にセットされたhookオブジェクトが必ずinitialize用hookになるため、
+                                // 0番目を固定で削除する
+                                hookStack[hookedProp].splice(0, 1);
+                                break;
+                            }
+                        }
+                        // 空になったhook配列自体を削除
+                        if (receiver.__hookStack__[hookedProp].length === 0) {
+                            delete receiver.__hookStack__[hookedProp];
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    return module;
+};
+
+/**
  * モジュールを定義する
  *
  * 名前空間スコープを指定しない場合、グローバル領域にモジュールが追加される。
@@ -508,42 +548,6 @@ Mixjs.module = function() {
      * @type {Object}
      */
     core.__hookStack__ = {};
-
-    /**
-     * Coreモジュールを実装したMixjsオブジェクトを作成
-     * @type {Boolean}
-     */    
-    var createdModule = append(core, base);
-
-    for (var prop in createdModule) {
-        if (createdModule.hasOwnProperty(prop) && inArray(prop, prohibits) === -1 && inArray(prop, reservations) === -1) {
-            createdModule.hook(prop, function() {
-                var hookStack, hookedProp, i;
-                var receiver = this, base = this.base;
-                if (receiver.hasOwnProperty(INITIALIZE_PROPERTY)) {
-                    // initializeメソッドを実行
-                    receiver[INITIALIZE_PROPERTY].apply(receiver, arguments);
-                    // initialize用のhookを全て解除
-                    hookStack = base.__hookStack__;
-                    for (hookedProp in hookStack) if (hookStack.hasOwnProperty(hookedProp)) {
-                        for (i = 0; i < hookStack[hookedProp].length; i++) {
-                            if (receiver.__moduleName__ === hookStack[hookedProp][i].receiver.__moduleName__) {
-                                // initializeを実行したレシーバに属するhookを解除する
-                                // 0番目にセットされたhookオブジェクトが必ずinitialize用hookになるため、
-                                // 0番目を固定で削除する
-                                hookStack[hookedProp].splice(0, 1);
-                                break;
-                            }
-                        }
-                        // 空になったhook配列自体を削除
-                        if (receiver.__hookStack__[hookedProp].length === 0) {
-                            delete receiver.__hookStack__[hookedProp];
-                        }
-                    }
-                }
-            });
-        }
-    }
 
     /**
      * モジュールがMix-in済みかどうか検出する
@@ -800,13 +804,14 @@ Mixjs.module = function() {
         return isIE678 ? legacyMix : modernMix;
     })();
     
-    var mixedModule = isInclude ? include(createdModule, modules) : createdModule;
+    var module = createModule(core, base);
+    module = isInclude ? include(module, modules) : module;
 
     if (MODULE_DEFINE_WITH_NAME) {
-        window[name] = mixedModule;
+        window[name] = module;
     }
     else if (MODULE_DEFINE_WITH_NAME_AND_SCOPE) {
-        arguments[1][name] = mixedModule;
+        arguments[1][name] = module;
     }
 };
 
