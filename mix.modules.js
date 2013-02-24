@@ -17,6 +17,10 @@ Mixjs.module("Utils", {
      */
     latestJQueryVersion_: "1.8.3",
 
+    initialize: function() {
+        //this.onLoadJQuery();
+    },
+
     /**
      * ホスティングjQueryを開く
      * @param {Function} callback コールバック関数
@@ -54,10 +58,48 @@ Mixjs.module("Utils", {
                     script.onload = callback;
                 }
             }
-            console.log(script)
             body.appendChild(script);
         }
     },
+
+    // syncLoadScript: function(url) {
+    //     if (!this.isLoadedScript(url)) {
+    //         var isLoaded = false;
+    //         var script = document.createElement("script"),
+    //         body = document.getElementsByTagName("html")[0];
+    //         script.setAttribute("src", url);
+    //         script.setAttribute("charset", "UTF-8");
+
+    //         if (typeof callback === "function") {
+    //             // for IE
+    //             if (script.readyState) {
+    //                 script.onreadystatechange = function() {
+    //                     if (this.readyState == 'loaded' || this.readyState == 'complete') {
+    //                         isLoaded = true;
+    //                     }
+    //                 }
+    //             }
+    //             // for modern browsers
+    //             else {
+    //                 isLoaded = true;
+    //             }
+    //         }
+    //         body.appendChild(script);
+
+    //         var sync = function() {
+    //             if (isLoaded) {
+    //                 return true;
+    //             }
+    //             else {
+    //                 console.log("+")
+    //                 setTimeout(sync, 100);
+    //             }
+    //         };
+
+    //         return sync();
+
+    //     }
+    // },
 
     /**
      * jQueryが無い場合は読み込んでから処理を実行する
@@ -70,7 +112,9 @@ Mixjs.module("Utils", {
             this.loadJQuery(callback);
         }
         else {
-            callback();
+            if (typeof callback === 'function') {
+                callback();
+            }
         }
     },
 
@@ -88,6 +132,8 @@ Mixjs.module("Utils", {
         }
         return false;
     },
+
+
 
     /**
      * Getterメソッドを動的に定義する
@@ -540,15 +586,30 @@ Mixjs.module("Http", {
      *   options.after   処理完了後に実行する関数
      */
     xhr: function(options) {
-        this.queue_.push(options);
+        var self = this;
         var args = options.args || {};
+        this.queue_.push(options);
+
         if (args.dataType === "jsonp") {
             this.jsonp();
         }
         else {
-            var deferred = $.Deferred();
-            this.ajax(deferred);
+            var deferred = jQuery.Deferred();
+            self.ajax(deferred);
             return deferred.promise();
+
+            var timer = function() {
+                if (typeof jQuery !== 'undefined') {
+                    var deferred = jQuery.Deferred();
+                    self.ajax(deferred);
+                    return deferred.promise();
+                }
+                else {
+                    console.log("load")
+                    setTimeout(timer, 100);
+                }
+            };
+            return timer();
         }
     },
 
@@ -567,7 +628,7 @@ Mixjs.module("Http", {
             afterCallback    = options.after;
 
         this.onLoadJQuery(function() {
-            $.ajax({
+            jQuery.ajax({
                 type: args.type || "post",
                 dataType: args.dataType || "json",
                 data: params,

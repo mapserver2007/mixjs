@@ -30,10 +30,16 @@ var PROTOTYPE_CHAIN_TOKEN = 'd945f6fc3d7f10c65ad54a82d7e2a1b8';
 var PROTOTYPE_CHAIN_TOKEN_POSITION = 12;
 
 /**
- * Mix-in後の自動実行されるメソッド名
+ * 初めてメソッドがコールされる直前に自動実行されるメソッド名
  * @type {String}
  */
 var INITIALIZE_PROPERTY = 'initialize';
+
+/**
+ * Mix-in後の自動実行されるメソッド名
+ * @type {String}
+ */
+var MIXED_PROPERTY = 'mixed';
 
 /**
  * 定義禁止のプロパティ名
@@ -49,10 +55,29 @@ var prohibits = ['mix',
                  '__moduleName__'];
 
 /**
+ * 予約済みのプロパティ名
+ * @type {Array}
+ */
+var reservations = [INITIALIZE_PROPERTY,
+                    MIXED_PROPERTY];
+
+/**
  * IE6,7,8かどうか
  * @type {Boolean}
  */
 var isIE678 = [,]!=0;
+
+/**
+ * Mixjsオブジェクトを格納する内部スコープ
+ * @type {Object}
+ */
+var innerScope = {};
+
+/**
+ * Mixjsオブジェクト判定用のベースモジュール
+ * @type {String}
+ */
+var ATOMIC_MODULE = 'AtomicModule';
 
 /**
  * Mixjsオブジェクトかどうか検出する
@@ -61,12 +86,11 @@ var isIE678 = [,]!=0;
  */
 var isMixjsModule = function(obj) {
     if (typeof obj !== 'object') return false;
-    var scope = {};
-    Mixjs.module('Dummy', scope, {});
+    var atomicModule = innerScope[ATOMIC_MODULE];
     return typeof obj['mix'] !== 'undefined' &&
            typeof obj['has'] !== 'undefined' &&
-           obj.mix.toString() === scope.Dummy.mix.toString() &&
-           obj.has.toString() === scope.Dummy.has.toString();
+           obj.mix.toString() === atomicModule.mix.toString() &&
+           obj.has.toString() === atomicModule.has.toString();
 };
 
 /**
@@ -167,7 +191,7 @@ var hook = function(prop, callback, isChain) {
         for (var func in self) if (self.hasOwnProperty(func)) {
             if ((typeof prop === 'string' && func === prop) ||
                 (typeof prop === 'object' && prop.test(func))) {
-                    pushHookStack(self, func, callback, isChain === true);
+                pushHookStack(self, func, callback, isChain === true);
             }
         }
         // isChain=trueでない場合、最初にマッチしたメソッドのみフックするので抜ける
@@ -244,9 +268,8 @@ var methodHook = function(prop, f) {
                 var receiver = hookInfo[i].receiver,
                     callback = hookInfo[i].callback,
                     isChain  = hookInfo[i].isChain;
-                if (receiver === target) {
-                    callback.apply(receiver, arguments);
-                    if (!isChain) break;
+                if (receiver.__moduleName__ === target.__moduleName__) {
+                    callback.apply(target, arguments);
                 }
             }
         }
@@ -487,6 +510,42 @@ Mixjs.module = function() {
     core.__hookStack__ = {};
 
     /**
+     * Coreモジュールを実装したMixjsオブジェクトを作成
+     * @type {Boolean}
+     */    
+    var createdModule = append(core, base);
+
+    for (var prop in createdModule) {
+        if (createdModule.hasOwnProperty(prop) && inArray(prop, prohibits) === -1 && inArray(prop, reservations) === -1) {
+            createdModule.hook(prop, function() {
+                var hookStack, hookedProp, i;
+                var receiver = this, base = this.base;
+                if (receiver.hasOwnProperty(INITIALIZE_PROPERTY)) {
+                    // initializeメソッドを実行
+                    receiver[INITIALIZE_PROPERTY].apply(receiver, arguments);
+                    // initialize用のhookを全て解除
+                    hookStack = base.__hookStack__;
+                    for (hookedProp in hookStack) if (hookStack.hasOwnProperty(hookedProp)) {
+                        for (i = 0; i < hookStack[hookedProp].length; i++) {
+                            if (receiver.__moduleName__ === hookStack[hookedProp][i].receiver.__moduleName__) {
+                                // initializeを実行したレシーバに属するhookを解除する
+                                // 0番目にセットされたhookオブジェクトが必ずinitialize用hookになるため、
+                                // 0番目を固定で削除する
+                                hookStack[hookedProp].splice(0, 1);
+                                break;
+                            }
+                        }
+                        // 空になったhook配列自体を削除
+                        if (receiver.__hookStack__[hookedProp].length === 0) {
+                            delete receiver.__hookStack__[hookedProp];
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    /**
      * モジュールがMix-in済みかどうか検出する
      * モジュールのMix-in順序は考慮しない
      * @param {MixjsObject} parent 対象オブジェクト
@@ -606,10 +665,10 @@ Mixjs.module = function() {
             for (var i = 0; i < modules.length; i++) {
                 var module = modules[i];
                 var _base = base;
-                if (!self.has(module) && module.hasOwnProperty(INITIALIZE_PROPERTY)) {
+                if (!self.has(module) && module.hasOwnProperty(MIXED_PROPERTY)) {
                     while (typeof _base !== 'undefined') {
                         if (_base.__moduleName__ === module.__moduleName__) {
-                            _base[INITIALIZE_PROPERTY].call(_base);
+                            _base[MIXED_PROPERTY].call(_base);
                         }
                         _base = _base.parent;
                     }
@@ -695,21 +754,30 @@ Mixjs.module = function() {
          */
         var modernMix = function() {
             var child, i, c, p, obj;
-            var modules = [this], ancestors = [];
+            var modules = [this], ancestors = [], hookStack = {};
             modules.push.apply(modules, arguments);
 
             // すべてのモジュールに対して若い世代から順にバラしてancestorsに格納する
             for (i = 0; i < modules.length; i++) {
                 child = modules[i];
+                // Mix-in対象のモジュールの__hookStack__をマージ
+                for (var prop in child) if (child.hasOwnProperty(prop)) {
+                    if (typeof child.__hookStack__[prop] !== 'undefined') {
+                        hookStack[prop] = hookStack[prop] || [];
+                        hookStack[prop] = hookStack[prop].concat(child.__hookStack__[prop]);
+                    }
+                }
                 while (Object.getPrototypeOf(child) && !isMixjsCoreModule(child)) {
                     ancestors.push(child);
                     child = Object.getPrototypeOf(child);
                 }
             }
+
+            core.__hookStack__ = hookStack;
             
             ancestors = uniq(ancestors);
             ancestors.push(core);
-            
+
             for (i = ancestors.length - 1; i > 0; i--) {
                 p = ancestors[i], c = ancestors[i-1];
                 obj = Object.create(p);
@@ -722,7 +790,6 @@ Mixjs.module = function() {
                 ancestors[i-1] = obj;
             }
 
-            
             core.base = child = ancestors[0];
             core.hook = hook;
             constructor(this, child, arguments);
@@ -732,14 +799,14 @@ Mixjs.module = function() {
 
         return isIE678 ? legacyMix : modernMix;
     })();
-
-    var module = append(core, base);
+    
+    var mixedModule = isInclude ? include(createdModule, modules) : createdModule;
 
     if (MODULE_DEFINE_WITH_NAME) {
-        window[name] = isInclude ? include(module, modules) : module;
+        window[name] = mixedModule;
     }
     else if (MODULE_DEFINE_WITH_NAME_AND_SCOPE) {
-        arguments[1][name] = isInclude ? include(module, modules) : module;
+        arguments[1][name] = mixedModule;
     }
 };
 
@@ -767,5 +834,10 @@ Mixjs.interface = function() {
     
     return this;
 };
+
+/**
+ * 比較に使用するベースモジュール
+ */
+Mixjs.module(ATOMIC_MODULE, innerScope, {});
 
 })(window);
