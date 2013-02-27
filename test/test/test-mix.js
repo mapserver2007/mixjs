@@ -149,7 +149,6 @@ test("Mix-in済みオブジェクトの親の親にMix-inしたモジュール�
 
 test("多重継承済みオブジェクトにMix-inしたモジュールが含まれていること", function() {
     var obj = Iphone.mix(Telephone, Android);
-    console.log(obj)
     deepEqual(obj.has(Iphone), true, "子オブジェクトにMix-inモジュールが含まれること");
 });
 
@@ -860,10 +859,35 @@ test("初めてメソッドが呼ばれたとき、initializeメソッドが実�
 
 test("intiialize実行後、initialize用にフックした内容がクリアされること", function() {
     var obj = SpecialWeek.mix(SundaySilence);
-    notDeepEqual(obj.__hookStack__, {}, "Mix-inされたモジュールのinitializeメソッドが実行されること");
+    // IEではプロトタイプチェーンでたどれないので処理を入れる
+    var hookStack = null;
+    if ([,]!=0) {
+        var _obj = obj;
+        while (_obj.hasOwnProperty('parent')) {
+            _obj = _obj.parent;
+        }
+        hookStack = _obj.__hookStack__;
+    }
+    else {
+        hookStack = obj.__hookStack__;
+    }
+
+    notDeepEqual(hookStack, {}, "Mix-inされたモジュールのinitializeメソッドが実行されること");
     obj.getCountry();
     obj.parent.getCountry();
-    deepEqual(obj.__hookStack__, {}, "Mix-inされたモジュールのinitializeメソッドが実行されること");
+
+    if ([,]!=0) {
+        var _obj = obj;
+        while (_obj.hasOwnProperty('parent')) {
+            _obj = _obj.parent;
+        }
+        hookStack = _obj.__hookStack__;
+    }
+    else {
+        hookStack = obj.__hookStack__;
+    }
+
+    deepEqual(hookStack, {}, "Mix-inされたモジュールのinitializeメソッドが実行されること");
 });
 
 test("initializeメソッド実行前にフックした処理が、inititalizeメソッド実行後に実行可能なこと", function() {
