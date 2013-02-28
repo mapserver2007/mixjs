@@ -66,6 +66,7 @@ var reservations = [INITIALIZE_PROPERTY,
  * @type {Boolean}
  */
 var isIE678 = [,]!=0;
+isIE678 = true;
 
 /**
  * Mixjsオブジェクトを格納する内部スコープ
@@ -188,18 +189,24 @@ var hook = function(prop, callback, isChain) {
     // isChain=trueでない場合、フックするレシーバとフック対象のメソッドのレシーバが
     // 一致した場合のみフック処理を実行する
     while (typeof self !== 'undefined') {
+        console.log(self)
         for (var func in self) if (self.hasOwnProperty(func)) {
+            // プロトタイプチェーンによる参照の場合、実態のレシーバまで辿る
+            if ((isIE678 && typeof self[prop] === 'function' && isCopied(self[prop])) ||
+                !self.hasOwnProperty(prop)) {
+                if (self.hasOwnProperty('parent')) {
+                    self = self.parent;
+                    continue;
+                }
+                else {
+                    break;
+                }
+            } 
             if ((typeof prop === 'string' && func === prop) ||
                 (typeof prop === 'object' && prop.test(func))) {
                 pushHookStack(self, func, callback);
             }
         }
-        // TODO プロトタイプチェーンでフックできないのは不便なので治したい。
-        // いまは実体メソッドのみフック可能。
-        // 1プロト→2実体の場合、フック可能だが実行されるのは2
-        // 1実体→2プロト→3実体の場合、1、3が実行されるようにしたい。
-
-
         // isChain=trueでない場合、最初にマッチしたメソッドのみフックするので抜ける
         if (isChain !== true) return;
         self = self.parent;
