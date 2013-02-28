@@ -375,7 +375,7 @@ test("baseプロパティを使用するとレシーバが子モジュールに�
 
 test("baseプロパティを使用してレシーバを子モジュールに戻したとき、プロトタイプチェーンで子モジュールの親を呼べること", function() {
     var obj = PsVita.mix(PspGo, Psp);
-    deepEqual(obj.parent.parent.getChainName(), "PSVITA", "Psp#getChainNameからPspGo#getChainNameを呼び出すがレシーバはPsVita");
+    deepEqual(obj.parent.parent.getChainName(), "PSPGO", "Psp#getChainNameからPspGo#getChainNameを呼び出すがレシーバはPspGo");
 });
 
 test("スコープを指定してモジュールを定義できること", function() {

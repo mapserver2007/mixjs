@@ -1,6 +1,6 @@
 /**
  * mix.js
- * version: 0.5.5 (2013/02/17)
+ * version: 0.6.0 (2013/02/17)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -124,14 +124,14 @@ var append = function(core, base) {
 
 /**
  * オブジェクトをディープコピーする
- * @param {Object} o コピー元オブジェクト
+ * @param {Object|Array} o コピー元オブジェクト
  * @returns {Object} コピー後オブジェクト
  */
 var clone = function(o) {
     var c, prop;
     o = o || {};
     if (isIE678) {
-        c = {};
+        c = o instanceof Array ? [] : {};
         for (prop in o) if (o.hasOwnProperty(prop)) {
             c[prop] = o[prop];
         }
@@ -194,6 +194,12 @@ var hook = function(prop, callback, isChain) {
                 pushHookStack(self, func, callback);
             }
         }
+        // TODO プロトタイプチェーンでフックできないのは不便なので治したい。
+        // いまは実体メソッドのみフック可能。
+        // 1プロト→2実体の場合、フック可能だが実行されるのは2
+        // 1実体→2プロト→3実体の場合、1、3が実行されるようにしたい。
+
+
         // isChain=trueでない場合、最初にマッチしたメソッドのみフックするので抜ける
         if (isChain !== true) return;
         self = self.parent;
@@ -255,8 +261,9 @@ var methodHook = function(prop, f) {
             }
         }
 
-        var hookInfo = self.__hookStack__[prop];
-
+        // TODO クローンするとhookInfoの要素が消える問題(Chrome)がなくなるが、
+        // IEで今度は動かなくなる。
+        var hookInfo = clone(self.__hookStack__[prop]);
         if (hookInfo instanceof Array) {
             for (var i = 0; i < hookInfo.length; i++) {
                 var receiver = hookInfo[i].receiver,
@@ -267,7 +274,7 @@ var methodHook = function(prop, f) {
             }
         }
 
-        return f.apply(this, arguments);
+        return f.apply(target, arguments);
     };
 };
 
@@ -407,16 +414,15 @@ var isSameObject = function(o1, o2) {
 
 /**
  * Mixjsオブジェクトを生成する
- * @param {Object} core Coreモジュール
- * @param {Object} base 定義モジュール
+ * @param {Object} module 定義モジュール
  */
-var createModule = function(core, base) {
-    var module = append(core, base);
+var createModule = function(module) {
     for (var prop in module) {
         if (module.hasOwnProperty(prop) && inArray(prop, prohibits) === -1 && inArray(prop, reservations) === -1) {
             module.hook(prop, function() {
                 var hookStack, hookedProp, i;
-                var receiver = this, base = this.base;
+                var receiver = this;
+                var base = receiver.hasOwnProperty('base') ? receiver.base : receiver;
                 if (receiver.hasOwnProperty(INITIALIZE_PROPERTY)) {
                     // initializeメソッドを実行
                     receiver[INITIALIZE_PROPERTY].apply(receiver, arguments);
@@ -443,6 +449,7 @@ var createModule = function(core, base) {
                 }
             });
         }
+
     }
 
     return module;
@@ -544,6 +551,12 @@ Mixjs.module = function() {
      * @type {String}
      */
     base.__moduleName__ = arguments[0];
+
+    /**
+     * ベースオブジェクト
+     * @type {String}
+     */
+    core.base = append(core, base);
 
     /**
      * フックメソッド
@@ -757,9 +770,7 @@ Mixjs.module = function() {
                     else {
                         child.__hookStack__ = hookStack;
                     }
-                   
                 }
-
                 child = child.parent;
             }
 
@@ -819,8 +830,8 @@ Mixjs.module = function() {
 
         return isIE678 ? legacyMix : modernMix;
     })();
-    
-    var module = createModule(core, base);
+
+    var module = createModule(core.base);
     module = isInclude ? include(module, modules) : module;
 
     if (MODULE_DEFINE_WITH_NAME) {
