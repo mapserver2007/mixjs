@@ -176,48 +176,76 @@ var isMixjsCoreModule = function(obj) {
 
 /**
  * フック処理を実行する
- * @param {Srting} フック対象のメソッド名
- * @param {Function} フック時に実行する関数
- * @param {Boolean} フックを親方向に連鎖的に検索するかどうか
+ * @param {Srting} prop フック対象のメソッド名
+ * @param {Function} callback フック時に実行する関数
+ * @param {Boolean} isChain フックを親方向に連鎖的に検索するかどうか
  */
 var hook = function(prop, callback, isChain) {
-    var self = this;
-    if (inArray(prop, prohibits) !== -1) {
+    var self = this, queue = {};
+    var hasKey = function(key, hash) {
+        for (var str in hash) {
+            if (("#" + str).indexOf(key) !== -1) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    if (inArray(prop, prohibits) !== -1 || inArray(prop, reservations) !== -1) {
         throw new Error("'" + prop + "' can't be hooking.");
     }
     // isChain=trueの場合、hookのレシーバを親方向に辿り、マッチするメソッド全てをフックする
     // isChain=trueでない場合、フックするレシーバとフック対象のメソッドのレシーバが
     // 一致した場合のみフック処理を実行する
     while (typeof self !== 'undefined') {
-        console.log(self)
         for (var func in self) if (self.hasOwnProperty(func)) {
-            // プロトタイプチェーンによる参照の場合、実態のレシーバまで辿る
-            if ((isIE678 && typeof self[prop] === 'function' && isCopied(self[prop])) ||
-                !self.hasOwnProperty(prop)) {
-                if (self.hasOwnProperty('parent')) {
-                    self = self.parent;
-                    continue;
+            if (inArray(func, prohibits) !== -1 || inArray(func, reservations) !== -1) {
+                continue;
+            }
+            
+            var _prop = prop;
+            if (typeof prop === 'object' && prop.test(func)) {
+                _prop = func;
+            }
+
+            if (typeof _prop !== 'string' || func !== _prop) {
+                continue;
+            }
+
+            if (isIE678) {
+                if (self.hasOwnProperty(_prop) && !isCopied(self[_prop])) {
+                    if (!hasKey(func, queue) || isChain === true) {
+                        queue[self.__moduleName__ + "#" + func] = {
+                            receiver: self,
+                            prop: func
+                        }
+                    }
                 }
-                else {
-                    break;
+            }
+            else {
+                if (self.hasOwnProperty(_prop)) {
+                    if (!hasKey(func, queue) || isChain === true) {
+                        queue[self.__moduleName__ + "#" + func] = {
+                            receiver: self,
+                            prop: func
+                        }
+                    }
                 }
-            } 
-            if ((typeof prop === 'string' && func === prop) ||
-                (typeof prop === 'object' && prop.test(func))) {
-                pushHookStack(self, func, callback);
             }
         }
-        // isChain=trueでない場合、最初にマッチしたメソッドのみフックするので抜ける
-        if (isChain !== true) return;
         self = self.parent;
+    }
+
+    for (prop in queue) {
+        pushHookStack(queue[prop].receiver, queue[prop].prop, callback);
     }
 };
 
 /**
  * フック処理に必要なパラメータをセットする
- * @param {MixjsObject} hookメソッド実行時のレシーバ
- * @param {Srting} フック対象のメソッド名
- * @param {Function} フック時に実行する関数
+ * @param {MixjsObject} receiver hookメソッド実行時のレシーバ
+ * @param {Srting} prop フック対象のメソッド名
+ * @param {Function} callback フック時に実行する関数
  */
 var pushHookStack = function(receiver, prop, callback) {
     var self = receiver;
@@ -268,8 +296,6 @@ var methodHook = function(prop, f) {
             }
         }
 
-        // TODO クローンするとhookInfoの要素が消える問題(Chrome)がなくなるが、
-        // IEで今度は動かなくなる。
         var hookInfo = clone(self.__hookStack__[prop]);
         if (hookInfo instanceof Array) {
             for (var i = 0; i < hookInfo.length; i++) {
@@ -331,7 +357,7 @@ var isCyclic = function(obj) {
 
 /**
  * 親からコピーされた関数であるかどうか(IE6,7,8のみ使用)
- * @param {Function} 対象関数
+ * @param {Function} func 対象関数
  * @return {Boolean} 検証結果
  */
 var isCopied = function(func) {
@@ -456,7 +482,6 @@ var createModule = function(module) {
                 }
             });
         }
-
     }
 
     return module;
