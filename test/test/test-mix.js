@@ -948,8 +948,8 @@ test("initializeメソッド実行前にフックした処理が、inititalize�
 
 test("Mix-inしたとき、Mix-inしたモジュールのmixedメソッドが実行されること", function() {
     var obj = Ubuntu.mix(Fedora);
-    var list = obj.getName();
-    deepEqual(list[0], "fedora", "Mix-inされたモジュールのmixedメソッドが実行されること");
+    var name = obj.getName();
+    deepEqual(name, "fedora", "Mix-inされたモジュールのmixedメソッドが実行されること");
 });
 
 test("多重継承したとき、継承したモジュールのmixedメソッドが実行されること", function() {

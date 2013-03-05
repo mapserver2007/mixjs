@@ -88,8 +88,8 @@ var ATOMIC_MODULE = 'AtomicModule';
 var isMixjsModule = function(obj) {
     if (typeof obj !== 'object') return false;
     var atomicModule = innerScope[ATOMIC_MODULE];
-    return typeof obj['mix'] !== 'undefined' &&
-           typeof obj['has'] !== 'undefined' &&
+    return typeof obj.mix !== 'undefined' &&
+           typeof obj.has !== 'undefined' &&
            obj.mix.toString() === atomicModule.mix.toString() &&
            obj.has.toString() === atomicModule.has.toString();
 };
@@ -202,7 +202,7 @@ var hook = function(prop, callback, isChain) {
             if (inArray(func, prohibits) !== -1 || inArray(func, reservations) !== -1) {
                 continue;
             }
-            
+
             var _prop = prop;
             if (typeof prop === 'object' && prop.test(func)) {
                 _prop = func;
@@ -212,27 +212,16 @@ var hook = function(prop, callback, isChain) {
                 continue;
             }
 
-            if (isIE678) {
-                if (self.hasOwnProperty(_prop) && !isCopied(self[_prop])) {
-                    if (!hasKey(func, queue) || isChain === true) {
-                        queue[self.__moduleName__ + "#" + func] = {
-                            receiver: self,
-                            prop: func
-                        }
-                    }
-                }
-            }
-            else {
-                if (self.hasOwnProperty(_prop)) {
-                    if (!hasKey(func, queue) || isChain === true) {
-                        queue[self.__moduleName__ + "#" + func] = {
-                            receiver: self,
-                            prop: func
-                        }
-                    }
+            if (self.hasOwnProperty(_prop)) {
+                if ((isIE678 && !isCopied(self[_prop]) || !isIE678) && (!hasKey(func, queue) || isChain === true)) {
+                    queue[self.__moduleName__ + "#" + func] = {
+                        receiver: self,
+                        prop: func
+                    };
                 }
             }
         }
+
         self = self.parent;
     }
 

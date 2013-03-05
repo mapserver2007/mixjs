@@ -198,44 +198,41 @@ Mixjs.module("BuenaVista", {
 
 Mixjs.module("Ubuntu", {
     mixed: function() {
-        this.names = this.base.names || [];
-        this.names.push("ubuntu");
+        this.name = "ubuntu";
     },
     getName: function() {
-        return this.names;
+        return this.name;
     }
 });
 
 Mixjs.module("Fedora", {
     mixed: function() {
-        this.names = this.base.names || [];
-        this.names.push("fedora");
+        this.name = "fedora";
     },
     getName: function() {
-        return this.names;
+        return this.name;
     }
 });
 
 Mixjs.module("Debian", {
     mixed: function() {
-        this.names = this.base.names || [];
-        this.names.push("debian");
+        this.name = "debian";
     },
     getName: function() {
-        return this.names;
+        return this.name;
     }
 });
 
 Mixjs.module("CentOS", {
     include: Fedora,
     getName: function() {
-        return this.names;
+        return this.name;
     }
 });
 
 Mixjs.module("RedHat", {
     include: [Fedora, Debian],
     getName: function() {
-        return this.names;
+        return this.name;
     }
 });
