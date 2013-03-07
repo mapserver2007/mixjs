@@ -66,7 +66,7 @@ var reservations = [INITIALIZE_PROPERTY,
  * @type {Boolean}
  */
 var isIE678 = [,]!=0;
-isIE678 = true;
+//isIE678 = true;
 
 /**
  * Mixjsオブジェクトを格納する内部スコープ

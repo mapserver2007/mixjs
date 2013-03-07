@@ -169,6 +169,39 @@ includeメソッドで内部Mix-inした場合、Module1は重複しています
 あらかじめ依存関係が決まっている場合は内部Mix-inを、決まっていない場合はMix-inを使用します。  
 
 ***
+###初期化処理を実行する(initialize)
+initializeメソッドを定義すると、初期化処理を実行できます。そのモジュールの任意のメソッドを初めて実行したとき1回だけ自動実行されます。  
+
+    Mixjs.module("Iphone", {
+        initialize: function() {
+            this.name = "iphone4s";
+        },
+        name: function() {
+            return this.name;
+        }
+    });
+
+    Iphone.name(); // iphone4s
+
+***
+###Mix-in初期化処理を実行する(mixed)
+mixedメソッドを定義すると、Mix-inされたときの初期化処理を実行できます。Mix-inされたモジュールのmixedメソッドが自動実行されます。
+
+    Mixjs.module("Iphone", {
+        mixed: function() {
+            console.log("iphone4s");
+        }
+    });
+
+    Mixjs.module("Feature", {
+        mixed: function() {
+            console.log("garake-");
+        }
+    });
+
+    var obj = Iphone.mix(Feature); // garake-
+
+***
 ###Mix-in済みかどうか調べる(has)
 多くのモジュールを定義し、Mix-inしたときにどのモジュールをMix-inしてあるのか調べることができます。
 

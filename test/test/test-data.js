@@ -198,7 +198,7 @@ Mixjs.module("BuenaVista", {
 
 Mixjs.module("Ubuntu", {
     mixed: function() {
-        this.name = "ubuntu";
+        this.base.name = "ubuntu";
     },
     getName: function() {
         return this.name;
@@ -207,7 +207,7 @@ Mixjs.module("Ubuntu", {
 
 Mixjs.module("Fedora", {
     mixed: function() {
-        this.name = "fedora";
+        this.base.name = "fedora";
     },
     getName: function() {
         return this.name;
@@ -216,7 +216,7 @@ Mixjs.module("Fedora", {
 
 Mixjs.module("Debian", {
     mixed: function() {
-        this.name = "debian";
+        this.base.name = "debian";
     },
     getName: function() {
         return this.name;
