@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.20 (2013/02/14)
+ * version: 0.1.21 (2013/03/10)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -17,19 +17,15 @@ Mixjs.module("Utils", {
      */
     latestJQueryVersion_: "1.8.3",
 
-    initialize: function() {
-        //this.onLoadJQuery();
-    },
-
     /**
      * ホスティングjQueryを開く
      * @param {Function} callback コールバック関数
      * @param {String} optVersion バージョン
      */
     loadJQuery: function(callback, optVersion) {
-        var url = "https://ajax.googleapis.com/ajax/libs/jquery/"
-            + (optVersion || this.latestJQueryVersion_)
-            + "/jquery.min.js";
+        var url = "https://ajax.googleapis.com/ajax/libs/jquery/" +
+            (optVersion || this.latestJQueryVersion_) +
+            "/jquery.min.js";
         this.loadScript(url, callback);
     },
 
@@ -51,7 +47,7 @@ Mixjs.module("Utils", {
                         if (this.readyState == 'loaded' || this.readyState == 'complete') {
                             callback();
                         }
-                    }
+                    };
                 }
                 // for modern browsers
                 else {
@@ -61,45 +57,6 @@ Mixjs.module("Utils", {
             body.appendChild(script);
         }
     },
-
-    // syncLoadScript: function(url) {
-    //     if (!this.isLoadedScript(url)) {
-    //         var isLoaded = false;
-    //         var script = document.createElement("script"),
-    //         body = document.getElementsByTagName("html")[0];
-    //         script.setAttribute("src", url);
-    //         script.setAttribute("charset", "UTF-8");
-
-    //         if (typeof callback === "function") {
-    //             // for IE
-    //             if (script.readyState) {
-    //                 script.onreadystatechange = function() {
-    //                     if (this.readyState == 'loaded' || this.readyState == 'complete') {
-    //                         isLoaded = true;
-    //                     }
-    //                 }
-    //             }
-    //             // for modern browsers
-    //             else {
-    //                 isLoaded = true;
-    //             }
-    //         }
-    //         body.appendChild(script);
-
-    //         var sync = function() {
-    //             if (isLoaded) {
-    //                 return true;
-    //             }
-    //             else {
-    //                 console.log("+")
-    //                 setTimeout(sync, 100);
-    //             }
-    //         };
-
-    //         return sync();
-
-    //     }
-    // },
 
     /**
      * jQueryが無い場合は読み込んでから処理を実行する
@@ -132,8 +89,6 @@ Mixjs.module("Utils", {
         }
         return false;
     },
-
-
 
     /**
      * Getterメソッドを動的に定義する
@@ -216,7 +171,7 @@ Mixjs.module("Utils", {
      * @return {Number} バイトサイズ    
      */
     bytesize: function(str) {
-        return unescape(encodeURIComponent(str)).length
+        return unescape(encodeURIComponent(str)).length;
     },
 
     /**
@@ -565,13 +520,50 @@ Mixjs.module("Cache", {
 });
 
 /**
+ * HTTP Deferedモジュール
+ */
+Mixjs.module("HttpDeferred", {
+    /** イベントキュー */
+    __EVENT_QUEUE__: [],
+
+    /**
+     * 初期処理
+     */
+    initialize: function() {
+        if (typeof jQuery === 'undefined') {
+            throw new Error("jQuery(1.5 or higher) is required.");
+        }
+        this.deferred = jQuery.when();
+    },
+
+    /**
+     * xhrリクエストをセットする
+     * @param Object xhrリクエスト
+     */
+    deferredEvent: function(event) {
+        this.__EVENT_QUEUE__.push(event);
+    },
+
+    /**
+     * xhrリクエストを同期的に実行する
+     */
+    fire: function() {
+        if (this.base.isBlank(this.__EVENT_QUEUE__)) {
+            return;
+        }
+        var self = this, event = this.__EVENT_QUEUE__.shift();
+        jQuery.when(this.base.ajax(event)).done(function() {
+            self.fire();
+        });
+    }
+});
+
+/**
  * HTTPモジュール
  */
 Mixjs.module("Http", {
     /** 依存ライブラリ */
     include: Utils,
-
-    queue_: [],
 
     /**
      * 非同期通信を実行する
@@ -586,39 +578,28 @@ Mixjs.module("Http", {
      *   options.after   処理完了後に実行する関数
      */
     xhr: function(options) {
-        var self = this;
         var args = options.args || {};
-        this.queue_.push(options);
-
+        if (options.deferred === true) {
+            delete options.deferred;
+            var self = this.mix(HttpDeferred);
+            self.deferredEvent(options);
+            return self;
+        }
         if (args.dataType === "jsonp") {
             this.jsonp();
         }
         else {
-            var deferred = jQuery.Deferred();
-            self.ajax(deferred);
-            return deferred.promise();
-
-            var timer = function() {
-                if (typeof jQuery !== 'undefined') {
-                    var deferred = jQuery.Deferred();
-                    self.ajax(deferred);
-                    return deferred.promise();
-                }
-                else {
-                    console.log("load")
-                    setTimeout(timer, 100);
-                }
-            };
-            return timer();
+            this.ajax(options);
+            return this;
         }
     },
 
     /**
      * 非同期通信を実行する
+     * @param {Object} options オプション
      */
-    ajax: function(deferred) {
+    ajax: function(options) {
         var self = this;
-        var options          = this.queue_.shift();
         var url              = options.url,
             params           = options.params || {},
             args             = options.args || {},
@@ -646,7 +627,6 @@ Mixjs.module("Http", {
             })
             .always(function() {
                 self.functionCaller(afterCallback, args);
-                deferred.resolve(self);
             });
         });
     },
@@ -678,7 +658,7 @@ Mixjs.module("Http", {
 
         var qlist = [];
         for (var key in params) { qlist.push(key + "=" + params[key]); }
-        var requestURL = url + "?" + qlist.join("&")
+        var requestURL = url + "?" + qlist.join("&");
 
         var remove = function() {
             var elem = document.getElementById(jsonpCallback);
@@ -714,14 +694,14 @@ Mixjs.module("Http", {
                     remove();
                     return;
                 }
-            }, args.timeout)
+            }, args.timeout);
         }
 
         // cache
         var setCache = function(key, value, options) {
             if (args.cache === true) {
                 if (!isEnableCache()) {
-                    throw new Error("require Cache module.")
+                    throw new Error("require Cache module.");
                 }
                 self.setCache(key, value, options);
             }
@@ -731,12 +711,12 @@ Mixjs.module("Http", {
             var data = null;
             if (args.cache === true) {
                 if (!isEnableCache()) {
-                    throw new Error("require Cache module.")
+                    throw new Error("require Cache module.");
                 }
                 data = self.getCache(key);
             }
             return data;
-        }
+        };
 
         // キャッシュが有効で、データがキャッシュされている場合
         if (getCache(url)) {
@@ -749,7 +729,7 @@ Mixjs.module("Http", {
                     if (this.readyState === "complete") {
                         onload();
                     }
-                }
+                };
             }
             // for modern browsers
             else {
@@ -757,10 +737,10 @@ Mixjs.module("Http", {
             }
 
             doc.open();
-            doc.write('<script type="text/javascript">'
-                + 'function ' + params[jsonpCallback] + '(response) { document["jsonObject"] = response; }'
-                + '</script>'
-                + '<script type="text/javascript" src="' + requestURL + '"></script>');
+            doc.write('<script type="text/javascript">' +
+                'function ' + params[jsonpCallback] + '(response) { document["jsonObject"] = response; }' +
+                '</script>' +
+                '<script type="text/javascript" src="' + requestURL + '"></script>');
             doc.close();
         }
     },
@@ -811,34 +791,3 @@ Mixjs.module("Http", {
         this.callbackCaller(callback, response, args);
     }
 });
-
-
-Mixjs.module("SyncEvent", {
-
-    include: Utils,
-
-    syncEvent: function() {
-        var _class = function() {};
-        _class.prototype.set = function() {
-            var events = arguments;
-
-
-
-        };
-        _class.prototype.fire = function() {
-
-        };
-    },
-
-    set: function() {
-        var events = arguments;
-    },
-
-    fire: function() {
-
-    }
-
-
-
-});
-

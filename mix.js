@@ -66,7 +66,6 @@ var reservations = [INITIALIZE_PROPERTY,
  * @type {Boolean}
  */
 var isIE678 = [,]!=0;
-//isIE678 = true;
 
 /**
  * Mixjsオブジェクトを格納する内部スコープ
@@ -414,6 +413,10 @@ var isSameObject = function(o1, o2) {
 
     var isSame = false;
     for (var prop in o1) if (o1.hasOwnProperty(prop)) {
+        // メソッドのみ検査対象とする
+        if (typeof o1[prop] !== 'function') {
+            continue;
+        }
         // 定義禁止プロパティは検査対象外
         if (inArray(prop, prohibits) !== -1) {
             continue;
