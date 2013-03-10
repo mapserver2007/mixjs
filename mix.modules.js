@@ -15,7 +15,7 @@ Mixjs.module("Utils", {
     /**
      * jQueryバージョン
      */
-    latestJQueryVersion_: "1.8.3",
+    latestJQueryVersion_: "1.9.1",
 
     /**
      * ホスティングjQueryを開く
@@ -552,7 +552,12 @@ Mixjs.module("HttpDeferred", {
             return;
         }
         var self = this, event = this.__EVENT_QUEUE__.shift();
-        jQuery.when(this.base.ajax(event)).done(function() {
+        jQuery.Deferred(function(dfd) {
+            event.resolve = dfd.resolve;
+            self.base.ajax(event);
+        })
+        .promise()
+        .then(function() {
             self.fire();
         });
     }
@@ -600,13 +605,14 @@ Mixjs.module("Http", {
      */
     ajax: function(options) {
         var self = this;
-        var url              = options.url,
-            params           = options.params || {},
-            args             = options.args || {},
-            successCallback  = options.success,
-            errorCallback    = options.error,
-            beforeCallback   = options.before,
-            afterCallback    = options.after;
+        var url             = options.url,
+            params          = options.params || {},
+            args            = options.args || {},
+            successCallback = options.success,
+            errorCallback   = options.error,
+            beforeCallback  = options.before,
+            afterCallback   = options.after,
+            resolveCallback = options.resolve;
 
         this.onLoadJQuery(function() {
             jQuery.ajax({
@@ -627,6 +633,7 @@ Mixjs.module("Http", {
             })
             .always(function() {
                 self.functionCaller(afterCallback, args);
+                self.functionCaller(resolveCallback);
             });
         });
     },
