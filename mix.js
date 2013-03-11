@@ -368,6 +368,10 @@ var uniq = function(ary){
     return a;
 };
 
+var reverseUniq = function(ary) {
+    return uniq(ary.reverse()).reverse();
+};
+
 /**
  * include対象でないオブジェクトかどうか検出する
  * @param {Object} obj 対象オブジェクト
@@ -798,7 +802,6 @@ Mixjs.module = function() {
                 child = child.parent;
             }
 
-            // TODO ここがおかしい
             mixed(this, ancestors[0], arguments);
 
             return ancestors[0];

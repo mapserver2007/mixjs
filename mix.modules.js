@@ -523,6 +523,9 @@ Mixjs.module("Cache", {
  * HTTP Deferedモジュール
  */
 Mixjs.module("HttpDeferred", {
+    /** 依存モジュール */
+    include: Utils,
+
     /** イベントキュー */
     __EVENT_QUEUE__: [],
 
@@ -530,10 +533,9 @@ Mixjs.module("HttpDeferred", {
      * 初期処理
      */
     initialize: function() {
-        if (typeof jQuery === 'undefined') {
+        if (typeof jQuery === 'undefined' || parseFloat(jQuery().jquery) < 1.5) {
             throw new Error("jQuery(1.5 or higher) is required.");
         }
-        this.deferred = jQuery.when();
     },
 
     /**
@@ -548,7 +550,7 @@ Mixjs.module("HttpDeferred", {
      * xhrリクエストを同期的に実行する
      */
     fire: function() {
-        if (this.base.isBlank(this.__EVENT_QUEUE__)) {
+        if (this.isBlank(this.__EVENT_QUEUE__)) {
             return;
         }
         var self = this, event = this.__EVENT_QUEUE__.shift();
