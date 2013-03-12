@@ -1,2 +1,3 @@
 <?php
-echo json_encode(array("name", "hoge"));
+sleep(1);
+echo json_encode(array("name" => "hoge"));

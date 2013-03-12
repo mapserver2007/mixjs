@@ -1,5 +1,134 @@
 module("mix.http.js");
 
+asyncTest("XmlHttpRequestが実行出来ること", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http);
+    obj.xhr({
+        url: "ajax.php",
+        args: {dataType: "json"},
+        success: function(data) {
+            start();
+            deepEqual(data.name, "hoge", "XHRを実行してデータが取得できる");
+        }
+    });
+});
+
+asyncTest("XmlHttpRequestを複数実行出来ること", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http);
+    var result = [];
+    obj.xhr([{
+        url: "ajax.php",
+        args: {dataType: "json"},
+        success: function(data) {
+            result.push(data.name);
+        }
+    },{
+        url: "ajax2.php",
+        args: {dataType: "json"},
+        success: function(data) {
+            result.push(data.name);
+        }
+    }]);
+
+    setTimeout(function() {
+        deepEqual(result[0], "fuga", "XHRを実行してデータが取得できる");
+        deepEqual(result[1], "hoge", "XHRを実行してデータが取得できる");
+        start();
+    }, 2000);
+});
+
+asyncTest("XmlHttpRequestを同期的に複数実行出来ること", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http);
+    var result = [];
+    obj.xhr([{
+        url: "ajax.php",
+        deferred: true,
+        args: {dataType: "json"},
+        success: function(data) {
+            result.push(data.name);
+        }
+    },{
+        url: "ajax2.php",
+        deferred: true,
+        args: {dataType: "json"},
+        success: function(data) {
+            result.push(data.name);
+        }
+    }]);
+
+    setTimeout(function() {
+        deepEqual(result[0], "hoge", "XHRを実行してデータが同期的に取得できる");
+        deepEqual(result[1], "fuga", "XHRを実行してデータが動的的に取得できる");
+        start();
+    }, 2000);
+});
+
+asyncTest("XmlHttpRequestを非同期的、同期的に複数同時に実行できること", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http);
+    var result = [];
+    obj.xhr([{
+        url: "ajax.php",
+        deferred: true,
+        args: {dataType: "json"},
+        success: function(data) {
+            result.push(data.name);
+        }
+    },{
+        url: "ajax2.php",
+        deferred: true,
+        args: {dataType: "json"},
+        success: function(data) {
+            result.push(data.name);
+        }
+    },{
+        url: "ajax2.php",
+        args: {dataType: "json"},
+        success: function(data) {
+            result.push("hage");
+        }
+    }]);
+
+    setTimeout(function() {
+        deepEqual(result[0], "hage", "XHRを実行してデータが非同期的、同期的で同時に取得できる");
+        deepEqual(result[1], "hoge", "XHRを実行してデータが非同期的、同期的で同時に取得できる");
+        deepEqual(result[2], "fuga", "XHRを実行してデータが非同期的、同期的で同時に取得できる");
+        start();
+    }, 2000);
+});
+
+asyncTest("連続でXmlHttpRequestを入れ子で実行したときafter処理がそれぞれ順番に正常に実行出来ること", function() {
+    Mixjs.module("Test", {});
+    var obj = Test.mix(Http);
+    var result = [];
+    obj.xhr({
+        url: "ajax.php",
+        args: {dataType: "json"},
+        success: function(data) {
+        },
+        after: function() {
+            result.push("first");
+            obj.xhr({
+                url: "ajax.php",
+                args: {dataType: "json"},
+                success: function(data) {
+                },
+                after: function() {
+                    result.push("second");
+                }
+            });
+        }
+    });
+
+    setTimeout(function() {
+        deepEqual(result[0], "first", "after1回目が成功");
+        deepEqual(result[1], "second", "after2回目が成功");
+        start();
+    }, 3000);
+});
+
 asyncTest("JSONPが実行出来ること", function() {
     Mixjs.module("Test", {});
     var obj = Test.mix(Http);

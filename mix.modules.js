@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.21 (2013/03/10)
+ * version: 0.1.22 (2013/03/12)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -494,7 +494,7 @@ Mixjs.module("Design", {
  */
 Mixjs.module("Cache", {
     /** 依存モジュール */
-    include: [Utils, Cookie],
+    include: [Cookie, Utils],
 
     /**
      * Cacheを設定する
@@ -530,15 +530,6 @@ Mixjs.module("HttpDeferred", {
     __EVENT_QUEUE__: [],
 
     /**
-     * 初期処理
-     */
-    initialize: function() {
-        if (typeof jQuery === 'undefined' || parseFloat(jQuery().jquery) < 1.5) {
-            throw new Error("jQuery(1.5 or higher) is required.");
-        }
-    },
-
-    /**
      * xhrリクエストをセットする
      * @param Object xhrリクエスト
      */
@@ -549,18 +540,23 @@ Mixjs.module("HttpDeferred", {
     /**
      * xhrリクエストを同期的に実行する
      */
-    fire: function() {
+    deferrdFire: function() {
         if (this.isBlank(this.__EVENT_QUEUE__)) {
             return;
         }
         var self = this, event = this.__EVENT_QUEUE__.shift();
-        jQuery.Deferred(function(dfd) {
-            event.resolve = dfd.resolve;
-            self.base.ajax(event);
-        })
-        .promise()
-        .then(function() {
-            self.fire();
+        this.onLoadJQuery(function() {
+            if (parseFloat(jQuery().jquery) < 1.5) {
+                throw new Error("jQuery(1.5 or higher) is required.");
+            }
+            jQuery.Deferred(function(dfd) {
+                event.resolve = dfd.resolve;
+                self.base.ajax(event);
+            })
+            .promise()
+            .then(function() {
+                self.deferrdFire();
+            });
         });
     }
 });
@@ -570,11 +566,11 @@ Mixjs.module("HttpDeferred", {
  */
 Mixjs.module("Http", {
     /** 依存ライブラリ */
-    include: Utils,
+    include: [HttpDeferred, Utils],
 
     /**
      * 非同期通信を実行する
-     * @param {Object} options オプション
+     * @param {Object|Array} options オプション
      * @example
      *   options.url     送信先URL
      *   options.params  送信パラメータ
@@ -585,36 +581,43 @@ Mixjs.module("Http", {
      *   options.after   処理完了後に実行する関数
      */
     xhr: function(options) {
-        var args = options.args || {};
-        if (options.deferred === true) {
-            delete options.deferred;
-            var self = this.mix(HttpDeferred);
-            self.deferredEvent(options);
-            return self;
+        var option, args;
+        if (!(options instanceof Array)) {
+            options = [options];
         }
-        if (args.dataType === "jsonp") {
-            this.jsonp();
+        for (var i = 0; i < options.length; i++) {
+            option = options[i];
+            args = option.args || {};
+            if (option.deferred === true) {
+                delete option.deferred;
+                this.deferredEvent(option);
+            }
+            else {
+                if (args.dataType === "jsonp") {
+                    this.jsonp(option);
+                }
+                else {
+                    this.ajax(option);
+                }
+            }
         }
-        else {
-            this.ajax(options);
-            return this;
-        }
+        this.deferrdFire();
     },
 
     /**
      * 非同期通信を実行する
-     * @param {Object} options オプション
+     * @param {Object} option オプション
      */
-    ajax: function(options) {
+    ajax: function(option) {
         var self = this;
-        var url             = options.url,
-            params          = options.params || {},
-            args            = options.args || {},
-            successCallback = options.success,
-            errorCallback   = options.error,
-            beforeCallback  = options.before,
-            afterCallback   = options.after,
-            resolveCallback = options.resolve;
+        var url             = option.url,
+            params          = option.params || {},
+            args            = option.args || {},
+            successCallback = option.success,
+            errorCallback   = option.error,
+            beforeCallback  = option.before,
+            afterCallback   = option.after,
+            resolveCallback = option.resolve;
 
         this.onLoadJQuery(function() {
             jQuery.ajax({
@@ -643,16 +646,15 @@ Mixjs.module("Http", {
     /**
      * エラー処理可能なJSONPを実行する
      */
-    jsonp: function() {
+    jsonp: function(option) {
         var self = this;
-        var options          = this.queue_.pop();
-        var url              = options.url,
-            params           = options.params || {},
-            args             = options.args || {},
-            successCallback  = options.success,
-            errorCallback    = options.error,
-            beforeCallback   = options.before,
-            afterCallback    = options.after;
+        var url              = option.url,
+            params           = option.params || {},
+            args             = option.args || {},
+            successCallback  = option.success,
+            errorCallback    = option.error,
+            beforeCallback   = option.before,
+            afterCallback    = option.after;
 
         this.functionCaller(beforeCallback, args);
 
@@ -707,12 +709,12 @@ Mixjs.module("Http", {
         }
 
         // cache
-        var setCache = function(key, value, options) {
+        var setCache = function(key, value, option) {
             if (args.cache === true) {
                 if (!isEnableCache()) {
                     throw new Error("require Cache module.");
                 }
-                self.setCache(key, value, options);
+                self.setCache(key, value, option);
             }
         };
 
