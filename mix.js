@@ -368,10 +368,6 @@ var uniq = function(ary){
     return a;
 };
 
-var reverseUniq = function(ary) {
-    return uniq(ary.reverse()).reverse();
-};
-
 /**
  * include対象でないオブジェクトかどうか検出する
  * @param {Object} obj 対象オブジェクト
