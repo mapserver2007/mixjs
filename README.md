@@ -168,6 +168,19 @@ mixメソッドでMix-inした場合、重複するModule1はMix-inされませ�
 includeメソッドで内部Mix-inした場合、Module1は重複していますが、Module2とModule1に依存関係があるため、Mix-inが実行されます。  
 あらかじめ依存関係が決まっている場合は内部Mix-inを、決まっていない場合はMix-inを使用します。  
 
+
+***
+###初期化処理を実行する(staticInitialize)
+staticInitializeメソッドを定義すると、初期化処理を実行できます。モジュールを定義した直後に1回だけ自動実行されます。  
+
+    Mixjs.module("Iphone", {
+        staticInitialize: function() {
+            console.log("iphone6");
+        }
+    });
+
+    // iphone6s
+
 ***
 ###初期化処理を実行する(initialize)
 initializeメソッドを定義すると、初期化処理を実行できます。そのモジュールの任意のメソッドを初めて実行したとき1回だけ自動実行されます。  
