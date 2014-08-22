@@ -112,7 +112,7 @@ test("多重継承した後のオブジェクトを親にした多重継承が�
 test("Mixjs.module()で生成したオブジェクト自身はMix-inの影響を受けないこと", function() {
     var obj = Iphone.mix(Feature).mix(Telephone);
     deepEqual(obj.getType(), "old type", "Mix-inしたオブジェクトは継承したメソッドを取得できる");
-    raises(function() {
+    throws(function() {
         Iphone.getType();
     }, "多重継承の影響をうけていなければで未継承オブジェクトのメソッドは取得できない");
 });
@@ -317,7 +317,7 @@ test("includeメソッドにMixjs#moduleで作成したオブジェクト以外�
         message = e.message;
     }
     deepEqual(message, "include method value must be mixjs module object.", "includeメソッドは関数による定義が不可");
-    
+
     message = null;
     try {
         var ChinaPad = {
@@ -331,8 +331,8 @@ test("includeメソッドにMixjs#moduleで作成したオブジェクト以外�
     catch (e) {
         message = e.message;
     }
-    
-    deepEqual(message, "include method value must be mixjs module object.", 
+
+    deepEqual(message, "include method value must be mixjs module object.",
             "includeメソッドはmixjsオブジェクト以外定義が不可");
 });
 
@@ -348,7 +348,7 @@ test("includeメソッドに配列としてMixjs#moduleで作成したオブジ�
         message = e.message;
     }
     deepEqual(message, "include method value must be mixjs module object.", "includeメソッドは関数による定義が不可");
-    
+
     message = null;
     try {
         var ChinaPad = {
@@ -362,8 +362,8 @@ test("includeメソッドに配列としてMixjs#moduleで作成したオブジ�
     catch (e) {
         message = e.message;
     }
-    
-    deepEqual(message, "include method value must be mixjs module object.", 
+
+    deepEqual(message, "include method value must be mixjs module object.",
             "includeメソッドはmixjsオブジェクト以外定義が不可");
 });
 
@@ -411,7 +411,7 @@ test("モジュール定義で引数を2つ指定するとき、第一引数(nam
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of name must be string.", "第一引数に数値の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module(function() {}, {name: "test1"});
@@ -420,7 +420,7 @@ test("モジュール定義で引数を2つ指定するとき、第一引数(nam
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of name must be string.", "第一引数に関数の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module({}, {name: "test1"});
@@ -440,7 +440,7 @@ test("モジュール定義で引数を2つ指定するとき、第二引数(bas
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of base must be object.", "第二引数に文字列の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module("Test", 111);
@@ -449,7 +449,7 @@ test("モジュール定義で引数を2つ指定するとき、第二引数(bas
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of base must be object.", "第二引数に数値の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module("Test", function() {});
@@ -474,7 +474,7 @@ test("モジュール定義で引数を3つ指定するとき、第一引数(nam
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of name must be string.", "第一引数に数値の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module(function() {}, {}, {name: "test1"});
@@ -483,7 +483,7 @@ test("モジュール定義で引数を3つ指定するとき、第一引数(nam
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of name must be string.", "第一引数に関数の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module({}, {}, {name: "test1"});
@@ -503,7 +503,7 @@ test("モジュール定義で引数を3つ指定するとき、第二引数(sco
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of scope must be object.", "第二引数に文字列の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module("Test", 111, {});
@@ -512,7 +512,7 @@ test("モジュール定義で引数を3つ指定するとき、第二引数(sco
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of scope must be object.", "第三引数に数値の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module("Test", function() {}, {});
@@ -533,7 +533,7 @@ test("モジュール定義で引数を3つ指定するとき、第三引数(bas
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of base must be object.", "第三引数に文字列の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module("Test", scope, 111);
@@ -542,7 +542,7 @@ test("モジュール定義で引数を3つ指定するとき、第三引数(bas
         message = e.message;
     }
     deepEqual(message, "Invalid argument: type of base must be object.", "第三引数に数値の指定は不可");
-    
+
     message = null;
     try {
         Mixjs.module("Test", scope, function() {});
@@ -556,7 +556,7 @@ test("モジュール定義で引数を3つ指定するとき、第三引数(bas
 test("Mix-inでモジュールの循環参照が発生した場合、例外が発生すること", function() {
     var message;
     try {
-        Windows95.mix(WindowsXP).mix(Windows98.mix(WindowsXP))
+        Windows95.mix(WindowsXP).mix(Windows98.mix(WindowsXP));
     }
     catch (e) {
         message = e.message;
@@ -566,7 +566,7 @@ test("Mix-inでモジュールの循環参照が発生した場合、例外が�
     }
     else {
         ok(true, "IE678以外では循環参照エラーは発生しない");
-    }    
+    }
 });
 
 test("親にプリミティブ値を返すプロパティがあり、子にはそのプロパティがない場合、関数でラップされず値をそのまま返却すること", function() {
@@ -959,4 +959,9 @@ test("多重継承したとき、継承したモジュールのmixedメソッド
 test("内部Mix-inしたとき、Mix-inしたモジュールのmixedメソッドが実行されること", function() {
     var obj = Ubuntu.mix(CentOS);
     deepEqual(obj.getName(), "fedora", "内部Mix-inされたモジュールのmixedメソッドが実行されること");
+});
+
+test("モジュール定義直後、staticInitializeメソッドが実行されること", function() {
+    var obj = Kindle;
+    deepEqual(obj.getName(), "static dynamic", "staticInitializeメソッドはinitializeメソッドより早く実行されること");
 });

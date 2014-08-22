@@ -236,3 +236,17 @@ Mixjs.module("RedHat", {
         return this.name;
     }
 });
+
+Mixjs.module("Kindle", {
+    staticInitialize: function() {
+        this.name = "static";
+    },
+
+    initialize: function() {
+        this.name += " dynamic";
+    },
+
+    getName: function() {
+        return this.name;
+    }
+})

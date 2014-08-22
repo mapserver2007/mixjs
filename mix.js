@@ -1,6 +1,6 @@
 /**
  * mix.js
- * version: 0.6.0 (2013/02/17)
+ * version: 0.6.1 (2014/08/20)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -36,6 +36,12 @@ var PROTOTYPE_CHAIN_TOKEN_POSITION = 12;
 var INITIALIZE_PROPERTY = 'initialize';
 
 /**
+ * モジュールを定義した直後に自動実行されるメソッド名
+ * @type {String}
+ */
+var STATIC_INITIALIZE_PROPERTY = 'staticInitialize';
+
+/**
  * Mix-in後の自動実行されるメソッド名
  * @type {String}
  */
@@ -59,6 +65,7 @@ var prohibits = ['mix',
  * @type {Array}
  */
 var reservations = [INITIALIZE_PROPERTY,
+                    STATIC_INITIALIZE_PROPERTY,
                     MIXED_PROPERTY];
 
 /**
@@ -259,12 +266,12 @@ var pushHookStack = function(receiver, prop, callback) {
 var methodHook = function(prop, f) {
     return function() {
         var self = this, target = this;
-        
+
         // レシーバが取得できない場合は例外を出力
         if (!isMixjsModule(self)) {
             throw new Error("Unknown properties of receiver: " + prop);
         }
-        
+
         if (isIE678) {
             // IE678の場合はプロトタイプチェーンで辿れないので
             // 明示的に始祖まで辿る
@@ -501,7 +508,7 @@ Mixjs.module = function() {
     var name, scope, base = clone(this.__interface__), core = {}, modules = [];
 
     delete this.__interface__;
-    
+
     try {
         if (MODULE_DEFINE_WITH_NAME) {
             if (typeof arguments[0] !== 'string') {
@@ -828,7 +835,7 @@ Mixjs.module = function() {
             }
 
             core.__hookStack__ = hookStack;
-            
+
             ancestors = uniq(ancestors);
             ancestors.push(core);
 
@@ -863,14 +870,18 @@ Mixjs.module = function() {
     else if (MODULE_DEFINE_WITH_NAME_AND_SCOPE) {
         arguments[1][name] = module;
     }
+
+    if (typeof module[STATIC_INITIALIZE_PROPERTY] === 'function') {
+        module[STATIC_INITIALIZE_PROPERTY].call(module);
+    }
 };
 
 /**
  * Interfaceモジュールをセットする
- * 
+ *
  * @example
  *   Mixjs.interface(Iphone).module('Iphone4s', {})
- * 
+ *
  * @param {..MixjsObject} Mixjsモジュール
  * @returns {Object} Mixjs
  */
@@ -886,7 +897,7 @@ Mixjs.interface = function() {
         }
     }
     this.__interface__ = obj;
-    
+
     return this;
 };
 
