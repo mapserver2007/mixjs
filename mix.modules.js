@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.22 (2013/03/12)
+ * version: 0.1.23 (2014/08/22)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -15,7 +15,7 @@ Mixjs.module("Utils", {
     /**
      * jQueryバージョン
      */
-    latestJQueryVersion_: "1.9.1",
+     latestJQueryVersion_: "1.10.2",
 
     /**
      * ホスティングjQueryを開く
@@ -800,5 +800,93 @@ Mixjs.module("Http", {
      */
     error: function(callback, response, args) {
         this.callbackCaller(callback, response, args);
+    }
+});
+
+
+/**
+ * WebSocketClientモジュール
+ */
+Mixjs.module("WebSocketClient", {
+    /**
+     * 静的コンストラクタ
+     */
+    staticInitialize: function() {
+        this.webSocketInfo = {
+            keepAlive: true,
+            keepAliveInterval: 60000
+        };
+    },
+
+    /**
+     * 接続する
+     * @param {Object} webSocketInfo WebSocket接続情報
+     */
+    connect: function(webSocketInfo) {
+        if (this.connection) {
+            return;
+        }
+        if (Object.keys(this.webSocketInfo).length === 0) {
+            this.webSocketInfo.url = webSocketInfo.url;
+            this.webSocketInfo.keepAlive = webSocketInfo.keepAlive || this.webSocketInfo.keepAlive;
+            this.webSocketInfo.keepAliveInterval = webSocketInfo.keepAliveInterval || this.webSocketInfo.keepAliveInterval;
+        }
+        this.connection = new WebSocket(this.webSocketInfo.url);
+
+        if (this.webSocketInfo.keepAlive) {
+            this._keepAlive();
+        }
+    },
+
+    /**
+     * サーバからデータをJSON形式で取得する
+     * @param {Function} callback コールバック関数
+     */
+    getJSON: function(callback) {
+        this.connection.onmessage = function(res) {
+            var json = JSON.parse(res.data);
+            callback(json);
+        };
+    },
+
+    /**
+     * WebSocketイベントをラップする
+     * @param {String} eventType イベントタイプ
+     * @param {Function} callback コールバック関数
+     */
+    on: function(eventType, callback) {
+        if (!this.connection) {
+            throw new Error("Can't established server connection.");
+        }
+
+        if (this.connection.hasOwnProperty("on" + eventType)) {
+            this.connection["on" + eventType] = callback;
+        }
+    },
+
+    /**
+     * 接続を維持する
+     */
+    _keepAlive: function() {
+        var self = this;
+        this._timerId = setInterval(function() {
+            // コネクションクローズ状態またはクローズ処理中の場合、再接続する
+            if (self.connection !== null && self.connection.readyState > 1) {
+                // console.warn("Client connection closed for server stop");
+                self._close();
+                self.connect();
+            }
+        }, 3000);
+    },
+
+    /**
+     * 切断する
+     */
+    _close: function() {
+        if (this.connection) {
+            this.connection.close();
+            this.connection = null;
+            clearInterval(this._timerId);
+        }
     }
 });
