@@ -826,7 +826,7 @@ Mixjs.module("WebSocketClient", {
         if (this.connection) {
             return;
         }
-        if (Object.keys(this.webSocketInfo).length === 0) {
+        if (typeof webSocketInfo === 'object') {
             this.webSocketInfo.url = webSocketInfo.url;
             this.webSocketInfo.keepAlive = webSocketInfo.keepAlive || this.webSocketInfo.keepAlive;
             this.webSocketInfo.keepAliveInterval = webSocketInfo.keepAliveInterval || this.webSocketInfo.keepAliveInterval;
@@ -870,11 +870,14 @@ Mixjs.module("WebSocketClient", {
     _keepAlive: function() {
         var self = this;
         this._timerId = setInterval(function() {
-            // コネクションクローズ状態またはクローズ処理中の場合、再接続する
-            if (self.connection !== null && self.connection.readyState > 1) {
-                // console.warn("Client connection closed for server stop");
-                self._close();
-                self.connect();
+            if (self.connection !== null) {
+                if (self.connection.readyState === 1) {
+                    self.connection.send("");
+                }
+                else {
+                    self._close();
+                    self.connect();
+                }
             }
         }, this.webSocketInfo.keepAliveInterval);
     },
