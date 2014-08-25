@@ -876,7 +876,7 @@ Mixjs.module("WebSocketClient", {
                 self._close();
                 self.connect();
             }
-        }, 3000);
+        }, this.webSocketInfo.keepAliveInterval);
     },
 
     /**
