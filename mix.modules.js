@@ -803,7 +803,6 @@ Mixjs.module("Http", {
     }
 });
 
-
 /**
  * WebSocketClientモジュール
  */
@@ -812,9 +811,9 @@ Mixjs.module("WebSocketClient", {
      * 静的コンストラクタ
      */
     staticInitialize: function() {
+        this._autoReconnectTimerId = null;
         this.webSocketInfo = {
-            keepAlive: true,
-            keepAliveInterval: 60000
+            autoReconnect: true
         };
     },
 
@@ -828,13 +827,51 @@ Mixjs.module("WebSocketClient", {
         }
         if (typeof webSocketInfo === 'object') {
             this.webSocketInfo.url = webSocketInfo.url;
-            this.webSocketInfo.keepAlive = webSocketInfo.keepAlive || this.webSocketInfo.keepAlive;
-            this.webSocketInfo.keepAliveInterval = webSocketInfo.keepAliveInterval || this.webSocketInfo.keepAliveInterval;
         }
-        this.connection = new WebSocket(this.webSocketInfo.url);
+        if (this._autoReconnectTimerId !== null) {
+            clearTimeout(_autoReconnectTimerId);
+            _autoReconnectTimerId = null;
+        }
 
-        if (this.webSocketInfo.keepAlive) {
-            this._keepAlive();
+        this.connection = new WebSocket(this.webSocketInfo.url);
+    },
+
+    /**
+     * 再接続する
+     */
+    reconnect: function() {
+        var self = this;
+        var intervalCount = 1, maxInterval = 300000;
+        var getInterval = function() {
+            var time = (Math.pow(2, intervalCount++) - 1) * 1000;
+            if (time > maxInterval) {
+                time = maxInterval;
+            }
+            return Math.random() * maxInterval;
+        };
+
+        this._autoReconnectTimerId = setTimeout(function() {
+            self.connect();
+        }, getInterval());
+    },
+
+    /**
+     * データを送信する
+     * @param {Mixed} data 送信データ
+     */
+    send: function(data) {
+        this.connection.send(data);
+    },
+
+    /**
+     * 接続する
+     * @param {Object} event クローズイベントオブジェクト
+     */
+    onClose: function(event) {
+        this.connection.close();
+        this.connection = null;
+        if (this.autoReconnect) {
+            this.reconnect();
         }
     },
 
@@ -861,35 +898,6 @@ Mixjs.module("WebSocketClient", {
 
         if (this.connection.hasOwnProperty("on" + eventType)) {
             this.connection["on" + eventType] = callback;
-        }
-    },
-
-    /**
-     * 接続を維持する
-     */
-    _keepAlive: function() {
-        var self = this;
-        this._timerId = setInterval(function() {
-            if (self.connection !== null) {
-                if (self.connection.readyState === 1) {
-                    self.connection.send("");
-                }
-                else {
-                    self._close();
-                    self.connect();
-                }
-            }
-        }, this.webSocketInfo.keepAliveInterval);
-    },
-
-    /**
-     * 切断する
-     */
-    _close: function() {
-        if (this.connection) {
-            this.connection.close();
-            this.connection = null;
-            clearInterval(this._timerId);
         }
     }
 });
