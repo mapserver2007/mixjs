@@ -812,6 +812,8 @@ Mixjs.module("WebSocketClient", {
      */
     staticInitialize: function() {
         this._autoReconnectTimerId = null;
+        this._intervalCount = 1;
+        this._eventCallbacks = {};
         this.webSocketInfo = {
             autoReconnect: true
         };
@@ -822,6 +824,7 @@ Mixjs.module("WebSocketClient", {
      * @param {Object} webSocketInfo WebSocket接続情報
      */
     connect: function(webSocketInfo) {
+        var self = this;
         if (this.connection) {
             return;
         }
@@ -829,11 +832,22 @@ Mixjs.module("WebSocketClient", {
             this.webSocketInfo.url = webSocketInfo.url;
         }
         if (this._autoReconnectTimerId !== null) {
-            clearTimeout(_autoReconnectTimerId);
-            _autoReconnectTimerId = null;
+            clearTimeout(this._autoReconnectTimerId);
+            this._autoReconnectTimerId = null;
         }
 
         this.connection = new WebSocket(this.webSocketInfo.url);
+
+        this.on("open", function() {
+            self._intervalCount = 1;
+            self._eventCallbacks["open"].call(self);
+        });
+
+        this.on("error", function() {
+            console.warn("WebSocket connection failed: " + self.webSocketInfo.url);
+            self.close();
+            self._eventCallbacks["error"].call(self);
+        });
     },
 
     /**
@@ -843,11 +857,11 @@ Mixjs.module("WebSocketClient", {
         var self = this;
         var intervalCount = 1, maxInterval = 300000;
         var getInterval = function() {
-            var time = (Math.pow(2, intervalCount++) - 1) * 1000;
+            var time = (Math.pow(2, self._intervalCount++) - 1) * 1000;
             if (time > maxInterval) {
                 time = maxInterval;
             }
-            return Math.random() * maxInterval;
+            return Math.random() * time;
         };
 
         this._autoReconnectTimerId = setTimeout(function() {
@@ -860,19 +874,40 @@ Mixjs.module("WebSocketClient", {
      * @param {Mixed} data 送信データ
      */
     send: function(data) {
-        this.connection.send(data);
+        if (this.connection === null ||
+            this.connection.readyState !== this.connection.OPEN) {
+            console.warn("WebSocket connection is closed");
+        }
+        else {
+            this.connection.send(data);
+        }
     },
 
     /**
-     * 接続する
-     * @param {Object} event クローズイベントオブジェクト
+     * 切断処理
      */
-    onClose: function(event) {
+    close: function() {
         this.connection.close();
         this.connection = null;
-        if (this.autoReconnect) {
+        if (this.webSocketInfo.autoReconnect) {
             this.reconnect();
         }
+    },
+
+    /**
+     * コネクション確立後のコールバック処理
+     * @param {Function} callback コネクション確立後のコールバック処理
+     */
+    onOpen: function(callback) {
+        this._eventCallbacks["open"] = callback;
+    },
+
+    /**
+     * エラー時のコールバック処理
+     * @param {Function} callback クローズ後コールバック処理
+     */
+    onError: function(callback) {
+        this._eventCallbacks["error"] = callback;
     },
 
     /**
@@ -895,7 +930,6 @@ Mixjs.module("WebSocketClient", {
         if (!this.connection) {
             throw new Error("Can't established server connection.");
         }
-
         if (this.connection.hasOwnProperty("on" + eventType)) {
             this.connection["on" + eventType] = callback;
         }
