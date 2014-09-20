@@ -1,6 +1,6 @@
 /*
  * mix.modules.js
- * version: 0.1.23 (2014/08/22)
+ * version: 0.1.24 (2014/09/20)
  *
  * Licensed under the MIT:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -840,13 +840,27 @@ Mixjs.module("WebSocketClient", {
 
         this.on("open", function() {
             self._intervalCount = 1;
-            self._eventCallbacks["open"].call(self);
+            if (typeof self._eventCallbacks["open"] === 'function') {
+                self._eventCallbacks["open"].call(self);
+            }
+        });
+
+        this.on("close", function() {
+            self.connection = null;
+            if (typeof self._eventCallbacks["close"] === 'function') {
+                self._eventCallbacks["close"].call(self);
+            }
+            if (self.webSocketInfo.autoReconnect) {
+                self.reconnect();
+            }
         });
 
         this.on("error", function() {
             console.warn("WebSocket connection failed: " + self.webSocketInfo.url);
-            self.close();
-            self._eventCallbacks["error"].call(self);
+            self.connection.close();
+            if (typeof self._eventCallbacks["error"] === 'function') {
+                self._eventCallbacks["error"].call(self);
+            }
         });
     },
 
@@ -884,17 +898,6 @@ Mixjs.module("WebSocketClient", {
     },
 
     /**
-     * 切断処理
-     */
-    close: function() {
-        this.connection.close();
-        this.connection = null;
-        if (this.webSocketInfo.autoReconnect) {
-            this.reconnect();
-        }
-    },
-
-    /**
      * コネクション確立後のコールバック処理
      * @param {Function} callback コネクション確立後のコールバック処理
      */
@@ -908,6 +911,14 @@ Mixjs.module("WebSocketClient", {
      */
     onError: function(callback) {
         this._eventCallbacks["error"] = callback;
+    },
+
+    /**
+     * 切断時のコールバック処理
+     * @param {Function} callback クローズ後コールバック処理
+     */
+    onClose: function(callback) {
+        this._eventCallbacks["close"] = callback;
     },
 
     /**
