@@ -884,7 +884,6 @@ Mixjs.module("WebSocketClient", {
             var json = JSON.parse(res.data);
             // ping受信
             if (typeof json.__ping__ !== 'undefined' && self._heartbeats.indexOf(json.__ping__) !== -1) {
-                console.log(json.__ping__);
                 self._heartbeats = self._heartbeats.filter(function(data) {
                     return data !== json.__ping__;
                 });
