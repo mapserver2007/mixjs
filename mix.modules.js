@@ -168,7 +168,7 @@ Mixjs.module("Utils", {
     /**
      * バイトサイズを返却する
      * @param {String} 文字列
-     * @return {Number} バイトサイズ    
+     * @return {Number} バイトサイズ
      */
     bytesize: function(str) {
         return unescape(encodeURIComponent(str)).length;
@@ -184,7 +184,7 @@ Mixjs.module("Utils", {
         if (typeof JSON === 'undefined') {
             throw new Error("This browser can't use JSON. Please include 'json2.js'.");
         }
-        // object型以外はシリアライズ不要 
+        // object型以外はシリアライズ不要
         if (typeof data !== 'object') {
             return data;
         }
@@ -815,8 +815,20 @@ Mixjs.module("WebSocketClient", {
         this._intervalCount = 1;
         this._eventCallbacks = {};
         this.webSocketInfo = {
-            autoReconnect: true
+            autoReconnect: true,
+            heartBeartInterval: 10000
         };
+
+        this._heartBeatInvervalId = null;
+    },
+
+    /**
+     * コンストラクタ
+     */
+    initialize: function() {
+        if (!window.hasOwnProperty("WebSocket")) {
+            this.onNoWebSocketSupportError();
+        }
     },
 
     /**
@@ -830,12 +842,17 @@ Mixjs.module("WebSocketClient", {
         }
         if (typeof webSocketInfo === 'object') {
             this.webSocketInfo.url = webSocketInfo.url;
+            if (webSocketInfo.hasOwnProperty("heartBeartInterval")) {
+                this.webSocketInfo.heartBeartInterval = webSocketInfo.heartBeartInterval;
+            }
         }
+
         if (this._autoReconnectTimerId !== null) {
             clearTimeout(this._autoReconnectTimerId);
             this._autoReconnectTimerId = null;
         }
 
+        this._heartbeats = [];
         this.connection = new WebSocket(this.webSocketInfo.url);
 
         this.on("open", function() {
@@ -862,6 +879,35 @@ Mixjs.module("WebSocketClient", {
                 self._eventCallbacks["error"].call(self);
             }
         });
+
+        this.on("message", function(res) {
+            var json = JSON.parse(res.data);
+            // ping受信
+            if (typeof json.__ping__ !== 'undefined' && self._heartbeats.indexOf(json.__ping__) !== -1) {
+                console.log(json.__ping__);
+                self._heartbeats = self._heartbeats.filter(function(data) {
+                    return data !== json.__ping__;
+                });
+                return;
+            }
+            // message
+            if (typeof self._eventCallbacks["message"] === 'function') {
+                self._eventCallbacks["message"].call(self, res);
+            }
+        });
+
+        // ping
+        this._heartBeatInvervalId = setInterval(function() {
+            if (self._heartbeats.length > 2) {
+                clearInterval(self._heartBeatInvervalId);
+                self._heartBeatInvervalId = null;
+                self.connection.close(); // close and reconnect
+                return;
+            }
+            var unixtime = parseInt(new Date() / 1000, 10);
+            self._heartbeats.push(unixtime);
+            self.connection.send(JSON.stringify({__ping__: unixtime}));
+        }, this.webSocketInfo.heartBeartInterval);
     },
 
     /**
@@ -888,6 +934,7 @@ Mixjs.module("WebSocketClient", {
      * @param {Mixed} data 送信データ
      */
     send: function(data) {
+        // TODO インターバル間の無通信状態の問題が未解決
         if (this.connection === null ||
             this.connection.readyState !== this.connection.OPEN) {
             console.warn("WebSocket connection is closed");
@@ -895,6 +942,13 @@ Mixjs.module("WebSocketClient", {
         else {
             this.connection.send(data);
         }
+    },
+
+    /**
+     * WebSocket未対応ブラウザのエラー処理
+     */
+    onNoWebSocketSupportError: function() {
+        throw new Error("Your browser is not support WebSocket");
     },
 
     /**
@@ -922,11 +976,19 @@ Mixjs.module("WebSocketClient", {
     },
 
     /**
+     * メッセージ取得時のコールバック処理
+     * @param {Function} callback メッセージ取得後コールバック処理
+     */
+    onMessage: function(callback) {
+         this._eventCallbacks["message"] = callback;
+    },
+
+    /**
      * サーバからデータをJSON形式で取得する
      * @param {Function} callback コールバック関数
      */
     getJSON: function(callback) {
-        this.connection.onmessage = function(res) {
+        this._eventCallbacks["message"] = function(res) {
             var json = JSON.parse(res.data);
             callback(json);
         };
