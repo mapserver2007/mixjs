@@ -292,6 +292,13 @@ var methodHook = function(prop, f) {
         }
 
         var hookInfo = clone(self.__hookStack__[prop]);
+
+        // propがinitializeの場合、実行後に破棄する
+        // initialize内で任意のメソッドを実行した時、initializeが残っているとhook処理でループしてしまうため
+        if (prop === INITIALIZE_PROPERTY) {
+            delete target[INITIALIZE_PROPERTY];
+        }
+
         if (hookInfo instanceof Array) {
             for (var i = 0; i < hookInfo.length; i++) {
                 var receiver = hookInfo[i].receiver,

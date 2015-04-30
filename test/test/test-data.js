@@ -249,4 +249,19 @@ Mixjs.module("Kindle", {
     getName: function() {
         return this.name;
     }
-})
+});
+
+Mixjs.module("Surface", {
+    initialize: function() {
+        this.name = "setup";
+        this.setup();
+    },
+
+    setup: function() {
+        this.name += " done";
+    },
+
+    getName: function() {
+        return this.name;
+    }
+});

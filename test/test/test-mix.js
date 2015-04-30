@@ -965,3 +965,8 @@ test("モジュール定義直後、staticInitializeメソッドが実行され�
     var obj = Kindle;
     deepEqual(obj.getName(), "static dynamic", "staticInitializeメソッドはinitializeメソッドより早く実行されること");
 });
+
+test("initializeメソッドから他のメソッドが実行できること", function() {
+    var obj = Surface;
+    deepEqual(obj.getName(), "setup done", "initializeメソッドから他のメソッドが実行できること");
+});
