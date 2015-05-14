@@ -230,7 +230,7 @@ Mixjs.module("Cookie", {
      */
     setCookie: function(key, value, expire, domain, path, isSecure) {
         // 値がnull,undefinedの場合はキャッシュしない
-        if (this.isBlank(value)) {
+        if (this.base.isBlank(value)) {
             return false;
         }
 
@@ -298,7 +298,7 @@ Mixjs.module("Cookie", {
         if (isSecure) cookie.push("secure");
 
         var cookieString = cookie.join(";");
-        if (this.bytesize(cookieString) > 4096) {
+        if (this.base.bytesize(cookieString) > 4096) {
             return false;
         }
 
@@ -541,11 +541,11 @@ Mixjs.module("HttpDeferred", {
      * xhrリクエストを同期的に実行する
      */
     deferrdFire: function() {
-        if (this.isBlank(this.__EVENT_QUEUE__)) {
+        if (this.base.isBlank(this.__EVENT_QUEUE__)) {
             return;
         }
         var self = this, event = this.__EVENT_QUEUE__.shift();
-        this.onLoadJQuery(function() {
+        this.base.onLoadJQuery(function() {
             if (parseFloat(jQuery().jquery) < 1.5) {
                 throw new Error("jQuery(1.5 or higher) is required.");
             }
@@ -590,7 +590,7 @@ Mixjs.module("Http", {
             args = option.args || {};
             if (option.deferred === true) {
                 delete option.deferred;
-                this.deferredEvent(option);
+                this.base.deferredEvent(option);
             }
             else {
                 if (args.dataType === "jsonp") {
@@ -601,7 +601,7 @@ Mixjs.module("Http", {
                 }
             }
         }
-        this.deferrdFire();
+        this.base.deferrdFire();
     },
 
     /**
@@ -619,7 +619,7 @@ Mixjs.module("Http", {
             afterCallback   = option.after,
             resolveCallback = option.resolve;
 
-        this.onLoadJQuery(function() {
+        this.base.onLoadJQuery(function() {
             jQuery.ajax({
                 type: args.type || "post",
                 dataType: args.dataType || "json",
@@ -714,7 +714,7 @@ Mixjs.module("Http", {
                 if (!isEnableCache()) {
                     throw new Error("require Cache module.");
                 }
-                self.setCache(key, value, option);
+                self.base.setCache(key, value, option);
             }
         };
 
@@ -724,7 +724,7 @@ Mixjs.module("Http", {
                 if (!isEnableCache()) {
                     throw new Error("require Cache module.");
                 }
-                data = self.getCache(key);
+                data = self.base.getCache(key);
             }
             return data;
         };
